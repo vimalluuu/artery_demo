@@ -1,8 +1,60 @@
-# Artery Segmentation and Stenosis Detection Demo
+# Artery Segmentation and Stenosis Detection Demo (VascuAI)
 
-This project is a static front-end demo for a medical image analysis interface. It includes a login page, registration page, dashboard, upload page, history page, and report page.
+This repository contains both the modern **React 19 + Vite + Tailwind CSS + Chart.js** application (`frontend-react/`) and the legacy static HTML demo.
 
-## Project Structure
+---
+
+## 🚀 Modern Application: VascuAI (`frontend-react/`)
+
+A high-fidelity clinical research console for vascular segmentation, stenosis quantification, and AI explainability across all project milestones.
+
+### Tech Stack
+- **Framework**: React 19 + Vite 8
+- **Routing**: React Router DOM v7
+- **Styling**: Tailwind CSS v4 + custom medical theme tokens (glassmorphism, slate/blue clinical palette)
+- **Visualizations**: Chart.js & React-Chartjs-2 (stenosis severity distribution, throughput trends, vessel diameter profile plots)
+- **Icons**: Lucide React
+- **HTTP Client**: Axios (pre-configured with JWT auth interceptors)
+
+### Milestone Screens Implemented
+| Milestone | Screen | Route | Features |
+|---|---|---|---|
+| **Weeks 1-2** | Login / Register | `/login`, `/register` | Form validation, role demo toggles (Clinician, Researcher, Admin), error handling |
+| **Weeks 1-2** | Dashboard | `/dashboard` | Case metrics, severity doughnut chart, 7-day throughput bar chart, quick navigation |
+| **Weeks 1-2** | Cases List | `/cases` | Filterable, searchable case table, status & severity pills, pagination |
+| **Weeks 1-2** | New Case Form | `/cases/new` | Multi-field intake (DICOM/NIfTI, CTA/MRA, anatomic region, de-identification toggle) |
+| **Weeks 1-2** | Case Detail | `/cases/:id` | Dropzone upload box, scan metadata, multi-slice previewer, run analysis trigger, history |
+| **Weeks 1-2** | Profile | `/profile` | User details, password change form with security checks |
+| **Weeks 1-2** | Admin: Users | `/admin/users` | User directory, role assignment (Clinician, Researcher, DataScientist, Admin), status toggling |
+| **Weeks 5-6** | Analysis Screen | `/cases/:id/analysis/:analysisId` | Slice viewer with zoom/pan, vessel mask & centerline overlays, stenosis spot pinpointing, interactive vessel diameter profile curve, findings table |
+| **Weeks 7-8** | Reports & Exports | `/reports` | Formats: PDF, JSON, CSV download triggers, report preview drawer, regulatory disclaimers |
+| **Weeks 7-8** | Model Management | `/admin/models` | Active model versioning, Dice/IoU/Precision/Recall metrics, rollback controls |
+| **Weeks 7-8** | Alerts & Flags | `/alerts` | Severity filter, low-confidence/uncertainty warnings, mark read / dismiss |
+
+### How to Run the React App
+```bash
+cd frontend-react
+npm install
+npm run dev
+```
+The application will launch at `http://localhost:5173`.
+
+### 🔑 Demo Login Accounts
+You can either click the **Quick Demo Accounts** buttons directly on the login screen or enter any of these credentials:
+
+| Role | Email | Password | Permissions & Access |
+|---|---|---|---|
+| **👑 Admin** | `admin@research.med` | `adminpassword123` *(or any password)* | Full system access, User Management (`/admin/users`), Model Management (`/admin/models`) |
+| **🩺 Clinician** | `aisha.patel@research.med` | `clinicianpassword123` | Cases intake, slice viewer, stenosis analysis, report export |
+| **🔬 Data Scientist** | `liu.wei@research.med` | `scientistpassword123` | Model benchmarks, uncertainty analysis, model management |
+| **📋 Researcher** | `james.osei@research.med` | `researcherpassword123` | Cohort case review, batch metrics, data exports |
+
+*Note: In mock demo mode, any password with at least 1 character is accepted.*
+
+---
+
+
+## 📁 Static HTML Demo (Legacy)
 
 - `index.html` - Login page
 - `register.html` - Registration page
@@ -10,39 +62,16 @@ This project is a static front-end demo for a medical image analysis interface. 
 - `upload.html` - Image upload and preview
 - `history.html` - Analysis history
 - `report.html` - Demo report page
-- `style.css` - Styling for the whole app
+- `style.css` - Styling for the static app
 
-## Run Manually
-
-1. Open a terminal in the project folder.
-2. Start a local web server:
-
+### Run Manually
 ```bash
 python -m http.server 8123
 ```
+Open `http://localhost:8123/index.html` in your browser.
 
-3. Open the following URL in your browser:
+---
 
-```text
-http://localhost:8123/index.html
-```
+## ⚠ Clinical Research Disclaimer
+All visualisations, stenosis percentages, and segmentations in this demonstration are AI-assisted research tools and are **not intended for standalone clinical diagnosis**. Every finding requires qualified clinical review.
 
-## Optional
-
-If you want to serve from a different folder or port, use:
-
-```bash
-python -m http.server 8000
-```
-
-Then open:
-
-```text
-http://localhost:8000/index.html
-```
-
-## Notes
-
-- This is a frontend-only demonstration.
-- There is no backend or actual medical model integration yet.
-- The pages are static and designed for UI preview and workflow demonstration.
