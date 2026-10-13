@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VascuAI | Upload Image</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body class="upload-page">
+
+    <header class="page-header compact-header">
+        <div>
+            <span class="eyebrow dark">IMAGE ANALYSIS</span>
+            <h1>Medical Image Upload</h1>
+        </div>
+        <a class="header-link" href="dashboard.html">← Back to Dashboard</a>
+    </header>
+
+    <main class="page-shell">
+        <section class="upload-card">
+            <div class="card-headline">
+                <h2>Select Coronary Angiography Image</h2>
+                <p>Choose an image from your computer to begin the vessel segmentation workflow.</p>
+            </div>
+
+            <div class="upload-dropzone">
+                <input type="file" id="medicalImage" accept="image/*" required>
+                <button type="button" class="primary-btn" onclick="previewImage()">Preview Image</button>
+            </div>
+
+            <div class="preview-panel">
+                <h3>Image Preview</h3>
+                <img id="preview" alt="Selected medical image preview" style="display: none;">
+            </div>
+        </section>
+    </main>
+
+    <script>
+        function previewImage() {
+            const input = document.getElementById("medicalImage");
+            const preview = document.getElementById("preview");
+
+            if (input.files.length === 0) {
+                alert("Please select an image first.");
+                return;
+            }
+
+            preview.src = URL.createObjectURL(input.files[0]);
+            preview.style.display = "block";
+        }
+    </script>
+
+</body>
+</html>

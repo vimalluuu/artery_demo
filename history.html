@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VascuAI | Analysis History</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body class="history-page">
+
+    <header class="history-header">
+        <div>
+            <span class="eyebrow dark">CASE HISTORY</span>
+            <h1>Analysis History</h1>
+        </div>
+        <a class="header-link" href="dashboard.html">← Dashboard</a>
+    </header>
+
+    <main class="history-container">
+        <section class="history-intro">
+            <h2>Previous Analyses</h2>
+            <p>View the status of your previous medical image analyses.</p>
+        </section>
+
+        <section class="history-summary">
+            <div class="summary-card">
+                <span class="summary-number">2</span>
+                <p>Sample Records</p>
+            </div>
+            <div class="summary-card">
+                <span class="summary-number">0</span>
+                <p>Completed Analyses</p>
+            </div>
+            <div class="summary-card">
+                <span class="summary-number">0</span>
+                <p>Reports Available</p>
+            </div>
+        </section>
+
+        <section class="history-table-section">
+            <h2>Recent Records</h2>
+
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Analysis ID</th>
+                            <th>Image</th>
+                            <th>Date</th>
+                            <th>Status</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+
+                    <tbody>
+                        <tr>
+                            <td>AN-001</td>
+                            <td>Sample Image 1</td>
+                            <td>Not available</td>
+                            <td><span class="status-pending">Demo Record</span></td>
+                            <td><button type="button" disabled>View Results</button></td>
+                        </tr>
+                        <tr>
+                            <td>AN-002</td>
+                            <td>Sample Image 2</td>
+                            <td>Not available</td>
+                            <td><span class="status-pending">Demo Record</span></td>
+                            <td><button type="button" disabled>View Results</button></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <p class="history-note">
+                These are demonstration records. Real analysis history will be displayed after backend integration.
+            </p>
+        </section>
+
+        <div class="history-navigation">
+            <a href="dashboard.html">Back to Dashboard</a>
+            <a href="upload.html">Upload New Image</a>
+        </div>
+    </main>
+
+</body>
+</html>

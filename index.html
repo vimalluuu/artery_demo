@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <meta name="theme-color" content="#16324f">
+    <meta name="description" content="VascuAI — AI-assisted artery segmentation and stenosis research platform.">
+
+    <title>VascuAI | Medical Image Analysis</title>
+
+    <link rel="stylesheet" href="style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+
+<body class="login-page">
+
+    <main class="login-layout">
+
+        <section class="login-brand">
+            <a href="index.html" class="brand-logo" aria-label="VascuAI home">
+                <span class="brand-icon" aria-hidden="true">
+                    <svg viewBox="0 0 48 48" fill="none">
+                        <path d="M24 40V25M24 25C24 17 13 18 13 8M24 25C24 17 35 18 35 8"
+                              stroke="currentColor" stroke-width="4"
+                              stroke-linecap="round"/>
+                        <path d="M13 8L8 14M13 8L18 14M35 8L30 14M35 8L40 14"
+                              stroke="currentColor" stroke-width="3"
+                              stroke-linecap="round" stroke-linejoin="round"/>
+                        <circle cx="24" cy="25" r="5" fill="#5EEAD4"/>
+                    </svg>
+                </span>
+                <span>Vascu<span class="brand-accent">AI</span></span>
+            </a>
+
+            <div class="brand-content">
+                <span class="eyebrow">AI-POWERED MEDICAL RESEARCH</span>
+
+                <h1>See beyond the scan.</h1>
+
+                <p class="brand-description">
+                    Advanced deep learning for artery segmentation
+                    and stenosis analysis, designed to support
+                    medical imaging research.
+                </p>
+
+                <div class="feature-list">
+                    <div class="feature-item">
+                        <span class="feature-check" aria-hidden="true">✓</span>
+                        <span>AI-assisted artery segmentation</span>
+                    </div>
+
+                    <div class="feature-item">
+                        <span class="feature-check" aria-hidden="true">✓</span>
+                        <span>Structured imaging analysis</span>
+                    </div>
+
+                    <div class="feature-item">
+                        <span class="feature-check" aria-hidden="true">✓</span>
+                        <span>Research-focused model evaluation</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="brand-footer">
+                <span class="status-dot" aria-hidden="true"></span>
+                Academic research prototype
+            </div>
+        </section>
+
+        <section class="login-main">
+            <div class="login-card">
+
+                <div class="mobile-brand">
+                    <span class="mobile-brand-icon" aria-hidden="true">V</span>
+                    <span>VascuAI</span>
+                </div>
+
+                <div class="login-heading">
+                    <span class="eyebrow">WELCOME BACK</span>
+                    <h2>Sign in to your workspace</h2>
+                    <p>Enter your credentials to continue.</p>
+                </div>
+
+                <form id="loginForm" action="#" method="post">
+
+                    <div class="form-group">
+                        <label for="email">Email address</label>
+                        <input
+                            type="email"
+                            id="email"
+                            name="email"
+                            placeholder="you@example.com"
+                            autocomplete="username"
+                            required
+                        >
+                    </div>
+
+                    <div class="form-group">
+                        <div class="password-label">
+                            <label for="password">Password</label>
+                        </div>
+
+                        <input
+                            type="password"
+                            id="password"
+                            name="password"
+                            placeholder="Enter your password"
+                            autocomplete="current-password"
+                            required
+                        >
+                    </div>
+
+                    <button type="submit" class="login-button" onclick="window.location.href='dashboard.html'">
+                        Sign in
+                        <span aria-hidden="true">→</span>
+                    </button>
+
+                    <p id="loginMessage" class="login-message" role="status" hidden></p>
+                </form>
+
+                <div class="register-prompt">
+                    New to VascuAI?
+                    <a href="register.html">Create an account</a>
+                </div>
+
+                <div class="security-note">
+                    <span aria-hidden="true">ⓘ</span>
+                    Use only authorized research accounts.
+                </div>
+
+            </div>
+
+            <footer class="login-footer">
+                <p>
+                    AI-generated outputs are for research purposes and
+                    require qualified clinical review.
+                </p>
+                <span>© 2026 VascuAI · Medical Imaging Research</span>
+            </footer>
+        </section>
+
+    </main>
+
+</body>
+</html>

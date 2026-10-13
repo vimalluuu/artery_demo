@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VascuAI Dashboard</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body class="dashboard-page">
+
+    <div class="app-shell">
+        <aside class="sidebar">
+            <div class="sidebar-brand">
+                <div class="brand-mark">V</div>
+                <div>
+                    <div class="brand-name">VascuAI</div>
+                    <small>Research Console</small>
+                </div>
+            </div>
+
+            <nav class="sidebar-nav">
+                <a class="nav-link active" href="dashboard.html">Overview</a>
+                <a class="nav-link" href="upload.html">Upload</a>
+                <a class="nav-link" href="history.html">History</a>
+                <a class="nav-link" href="report.html">Reports</a>
+            </nav>
+
+            <div class="sidebar-footer">
+                <a href="index.html">Logout</a>
+            </div>
+        </aside>
+
+        <main class="content-panel">
+            <header class="topbar">
+                <div>
+                    <span class="eyebrow dark">CLINICAL RESEARCH</span>
+                    <h1>Medical Imaging Dashboard</h1>
+                </div>
+                <button type="button" class="primary-btn" onclick="window.location.href='upload.html'">
+                    + New Analysis
+                </button>
+            </header>
+
+            <section class="stats-grid">
+                <article class="stat-card accent">
+                    <span>Images Processed</span>
+                    <strong>128</strong>
+                    <small>+14.2% this month</small>
+                </article>
+                <article class="stat-card">
+                    <span>Segmentation Success</span>
+                    <strong>96.4%</strong>
+                    <small>Model confidence</small>
+                </article>
+                <article class="stat-card">
+                    <span>Pending Review</span>
+                    <strong>08</strong>
+                    <small>Awaiting validation</small>
+                </article>
+            </section>
+
+            <section class="utility-grid">
+                <article class="utility-card large">
+                    <div class="card-header">
+                        <h2>Analysis Workflow</h2>
+                        <span class="pill">Active</span>
+                    </div>
+                    <p>Upload coronary angiography images and review segmentation outcomes in a single workflow.</p>
+                    <div class="button-stack">
+                        <button type="button" class="primary-btn" onclick="window.location.href='upload.html'">Upload Medical Image</button>
+                        <button type="button" class="secondary-btn" onclick="window.location.href='history.html'">View History</button>
+                    </div>
+                </article>
+
+                <article class="utility-card">
+                    <div class="card-header">
+                        <h2>Recent Activity</h2>
+                    </div>
+                    <ul class="activity-list">
+                        <li><span class="dot success"></span> Case 1043 processed successfully</li>
+                        <li><span class="dot neutral"></span> Model recalibration in progress</li>
+                        <li><span class="dot warning"></span> 2 reports pending validation</li>
+                    </ul>
+                </article>
+            </section>
+
+            <section class="action-grid">
+                <article class="action-card">
+                    <h3>Medical Image Analysis</h3>
+                    <p>Upload a new angiography image to begin the segmentation workflow.</p>
+                    <button type="button" class="primary-btn" onclick="window.location.href='upload.html'">Open Upload</button>
+                </article>
+
+                <article class="action-card">
+                    <h3>Previous Analyses</h3>
+                    <p>Review and compare stored cases to monitor research progress.</p>
+                    <button type="button" class="secondary-btn" onclick="window.location.href='history.html'">Open History</button>
+                </article>
+
+                <article class="action-card">
+                    <h3>Analysis Reports</h3>
+                    <p>Inspect result summaries and report layouts for each study.</p>
+                    <button type="button" class="secondary-btn" onclick="window.location.href='report.html'">View Report</button>
+                </article>
+            </section>
+        </main>
+    </div>
+
+</body>
+</html>
