@@ -58,7 +58,7 @@ export default function App() {
           {/* Protected — any authenticated user */}
           <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
           <Route path="/cases"     element={<ProtectedRoute><Cases /></ProtectedRoute>} />
-          <Route path="/cases/new" element={<ProtectedRoute><NewCase /></ProtectedRoute>} />
+          <Route path="/cases/new" element={<ProtectedRoute roles={['Clinician', 'Admin']}><NewCase /></ProtectedRoute>} />
           <Route path="/cases/:id" element={<ProtectedRoute><CaseDetail /></ProtectedRoute>} />
           <Route path="/cases/:id/analysis/:analysisId" element={<ProtectedRoute><AnalysisResult /></ProtectedRoute>} />
           <Route path="/analysis"  element={<ProtectedRoute><Navigate to="/cases" replace /></ProtectedRoute>} />

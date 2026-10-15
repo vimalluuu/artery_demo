@@ -5,10 +5,11 @@ import { User, Lock, Building2, CheckCircle, AlertCircle } from 'lucide-react';
 import AppShell from '../components/AppShell';
 
 export default function Profile() {
-  const { user, logout } = useAuth();
+  const { user, logout, updateProfile, changePassword } = useAuth();
   const navigate = useNavigate();
   const [tab, setTab]   = useState('details');
   const [saved, setSaved] = useState(false);
+  const [profileError, setProfileError] = useState('');
   const [pwForm, setPwForm] = useState({ current: '', newPw: '', confirm: '' });
   const [pwError, setPwError] = useState('');
   const [pwSuccess, setPwSuccess] = useState(false);
@@ -16,22 +17,27 @@ export default function Profile() {
   const [details, setDetails] = useState({
     name: user?.name || '',
     email: user?.email || '',
-    institution: user?.institution || 'City Medical Center',
-    department: user?.department || 'Cardiology',
+    institution: user?.institution || '',
+    department: user?.department || '',
   });
 
-  const saveDetails = (e) => {
+  const saveDetails = async (e) => {
     e.preventDefault();
+    setProfileError('');
+    try { await updateProfile(details); }
+    catch (err) { setProfileError(err.message); return; }
     setSaved(true);
     setTimeout(() => setSaved(false), 2500);
   };
 
-  const changePw = (e) => {
+  const changePw = async (e) => {
     e.preventDefault();
     if (!pwForm.current) { setPwError('Enter current password.'); return; }
-    if (pwForm.newPw.length < 8) { setPwError('New password must be at least 8 characters.'); return; }
+    if (pwForm.newPw.length < 12) { setPwError('New password must be at least 12 characters.'); return; }
     if (pwForm.newPw !== pwForm.confirm) { setPwError('Passwords do not match.'); return; }
     setPwError('');
+    try { await changePassword(pwForm.current, pwForm.newPw); }
+    catch (err) { setPwError(err.message); return; }
     setPwSuccess(true);
     setPwForm({ current: '', newPw: '', confirm: '' });
     setTimeout(() => setPwSuccess(false), 3000);
@@ -66,7 +72,7 @@ export default function Profile() {
             <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 2 }}>{user?.email}</div>
             <div className="divider" />
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, justifyContent: 'center', fontSize: 12, color: '#475569' }}>
-              <Building2 size={13} /> {user?.institution || 'City Medical Center'}
+              <Building2 size={13} /> {user?.institution || ''}
             </div>
           </div>
 
@@ -79,7 +85,7 @@ export default function Profile() {
             </button>
           ))}
 
-          <button className="btn btn-danger" onClick={() => { logout(); navigate('/login'); }}>
+          <button className="btn btn-danger" onClick={async () => { await logout(); navigate('/login'); }}>
             Sign out
           </button>
         </div>
@@ -90,6 +96,7 @@ export default function Profile() {
             <>
               <div className="card-header"><h2 className="card-title">Profile Details</h2></div>
               <div className="card-body">
+                {profileError && <p role="alert">{profileError}</p>}
                 {saved && (
                   <div style={{ display: 'flex', gap: 8, padding: '10px 14px', background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 10, color: '#15803d', fontSize: 13, marginBottom: 18 }}>
                     <CheckCircle size={16} /> Profile updated successfully.
@@ -104,7 +111,7 @@ export default function Profile() {
                     </div>
                     <div className="form-group">
                       <label className="form-label" htmlFor="profile-email">Email</label>
-                      <input id="profile-email" className="form-input" type="email" value={details.email}
+                      <input id="profile-email" className="form-input" type="email" value={details.email} disabled
                         onChange={(e) => setDetails({ ...details, email: e.target.value })} required />
                     </div>
                   </div>
@@ -154,7 +161,7 @@ export default function Profile() {
                   </div>
                   <div className="form-group">
                     <label className="form-label" htmlFor="new-pw">New password</label>
-                    <input id="new-pw" type="password" className="form-input" placeholder="Min. 8 characters"
+                    <input id="new-pw" type="password" className="form-input" placeholder="Min. 12 characters"
                       value={pwForm.newPw} onChange={(e) => setPwForm({ ...pwForm, newPw: e.target.value })} required />
                   </div>
                   <div className="form-group">

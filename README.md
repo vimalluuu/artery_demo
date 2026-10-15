@@ -2,6 +2,19 @@
 
 This repository contains both the modern **React 19 + Vite + Tailwind CSS + Chart.js** application (`frontend-react/`) and the legacy static HTML demo.
 
+## Authentication integration
+
+The React app now uses the FastAPI backend for registration, login, profile/password
+updates, logout and administrator account management. Start PostgreSQL and follow
+[backend setup and migrations](backend/README.md) before signing in. Create the first
+administrator using the explicit terminal bootstrap; there are no built-in demo
+credentials. Case/analysis/dashboard/report/model screens still contain simulated
+data and require separate backend integration.
+
+See the [authentication audit and comparison](docs/auth-audit.md) and
+[pre-implementation decision](docs/auth-decision.md) for evidence, API contracts,
+role permissions, test results and the recommendation for PR #1.
+
 ---
 
 ## 🚀 Modern Application: VascuAI (`frontend-react/`)
@@ -19,7 +32,7 @@ A high-fidelity clinical research console for vascular segmentation, stenosis qu
 ### Milestone Screens Implemented
 | Milestone | Screen | Route | Features |
 |---|---|---|---|
-| **Weeks 1-2** | Login / Register | `/login`, `/register` | Form validation, role demo toggles (Clinician, Researcher, Admin), error handling |
+| **Weeks 1-2** | Login / Register | `/login`, `/register` | Validated API registration/login, role mapping, error handling |
 | **Weeks 1-2** | Dashboard | `/dashboard` | Case metrics, severity doughnut chart, 7-day throughput bar chart, quick navigation |
 | **Weeks 1-2** | Cases List | `/cases` | Filterable, searchable case table, status & severity pills, pagination |
 | **Weeks 1-2** | New Case Form | `/cases/new` | Multi-field intake (DICOM/NIfTI, CTA/MRA, anatomic region, de-identification toggle) |
@@ -39,20 +52,15 @@ npm run dev
 ```
 The application will launch at `http://localhost:5173`.
 
-### 🔑 Demo Login Accounts
-You can either click the **Quick Demo Accounts** buttons directly on the login screen or enter any of these credentials:
+### Authentication roles
 
-| Role | Email | Password | Permissions & Access |
-|---|---|---|---|
-| **👑 Admin** | `admin@research.med` | `adminpassword123` *(or any password)* | Full system access, User Management (`/admin/users`), Model Management (`/admin/models`) |
-| **🩺 Clinician** | `aisha.patel@research.med` | `clinicianpassword123` | Cases intake, slice viewer, stenosis analysis, report export |
-| **🔬 Data Scientist** | `liu.wei@research.med` | `scientistpassword123` | Model benchmarks, uncertainty analysis, model management |
-| **📋 Researcher** | `james.osei@research.med` | `researcherpassword123` | Cohort case review, batch metrics, data exports |
-
-*Note: In mock demo mode, any password with at least 1 character is accepted.*
+The canonical role names are Clinician (Radiologist / Clinician), Researcher
+(Medical Researcher), DataScientist (Data Scientist / ML Engineer), and Admin
+(Administrator). Public signup accepts the first three only. The backend enforces
+permissions; browser state cannot grant administrator privileges. Registration
+requires a 12-128 character password. See the audit report for the permission matrix.
 
 ---
-
 
 ## 📁 Static HTML Demo (Legacy)
 

@@ -5,46 +5,47 @@ import {
   Chart as ChartJS, CategoryScale, LinearScale, BarElement, ArcElement,
   Title, Tooltip, Legend,
 } from 'chart.js';
-import { FolderOpen, CheckCircle, AlertTriangle, Clock, TrendingUp, ArrowRight } from 'lucide-react';
+import { FolderOpen, CheckCircle, Clock, ImageIcon, ArrowRight, AlertTriangle, Info } from 'lucide-react';
 import AppShell from '../components/AppShell';
 import { casesApi } from '../api/cases';
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, ArcElement, Title, Tooltip, Legend);
 
-const SEV_COLORS = {
-  Normal:   '#22c55e',
-  Mild:     '#eab308',
-  Moderate: '#f97316',
-  Severe:   '#ef4444',
-  Critical: '#7f1d1d',
-};
-
 export default function Dashboard() {
   const navigate = useNavigate();
   const [cases, setCases] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState('');
 
   useEffect(() => {
-    casesApi.list().then((d) => { setCases(d); setLoading(false); });
+    casesApi.list()
+      .then((d) => { setCases(d); setLoading(false); })
+      .catch((err) => {
+        setLoading(false);
+        setLoadError(err.response?.status === 403
+          ? 'Your role does not permit viewing cases.'
+          : err.message || 'Failed to load cases.');
+      });
   }, []);
 
   const total      = cases.length;
   const complete   = cases.filter((c) => c.status === 'Complete').length;
   const processing = cases.filter((c) => c.status === 'Processing').length;
-  const pending    = cases.filter((c) => c.status === 'Pending').length;
-  const alerts     = cases.filter((c) => c.severity === 'Severe' || c.severity === 'Critical').length;
+  const withImage  = cases.filter((c) => c.hasImage).length;
 
-  const sevDist = ['Normal', 'Mild', 'Moderate', 'Severe', 'Critical'].map((s) => ({
-    label: s,
-    count: cases.filter((c) => c.severity === s).length,
-    color: SEV_COLORS[s],
-  }));
+  // Status distribution for doughnut chart (real backend statuses)
+  const statusDist = [
+    { label: 'Complete',   count: complete,                                                            color: '#22c55e' },
+    { label: 'Processing', count: processing,                                                          color: '#3b82f6' },
+    { label: 'Pending',    count: cases.filter((c) => c.status === 'Pending').length,                  color: '#eab308' },
+    { label: 'Failed',     count: cases.filter((c) => c.status === 'Failed').length,                   color: '#ef4444' },
+  ];
 
   const doughnutData = {
-    labels: sevDist.map((s) => s.label),
+    labels: statusDist.map((s) => s.label),
     datasets: [{
-      data: sevDist.map((s) => s.count || 0),
-      backgroundColor: sevDist.map((s) => s.color),
+      data: statusDist.map((s) => s.count || 0),
+      backgroundColor: statusDist.map((s) => s.color),
       borderWidth: 0,
       hoverOffset: 6,
     }],
@@ -73,10 +74,10 @@ export default function Dashboard() {
   };
 
   const STATS = [
-    { label: 'Total Cases',       value: total,      icon: FolderOpen,     color: '#dbeafe', iconColor: '#2563eb', change: '+14%', up: true },
-    { label: 'Analyses Complete', value: complete,   icon: CheckCircle,    color: '#dcfce7', iconColor: '#16a34a', change: '+8%',  up: true },
-    { label: 'Processing',        value: processing, icon: Clock,          color: '#fef9c3', iconColor: '#d97706', change: null,   up: null },
-    { label: 'High Severity',     value: alerts,     icon: AlertTriangle,  color: '#fee2e2', iconColor: '#dc2626', change: null,   up: null },
+    { label: 'Total Cases',       value: total,      icon: FolderOpen,  color: '#dbeafe', iconColor: '#2563eb' },
+    { label: 'Analyses Complete', value: complete,   icon: CheckCircle, color: '#dcfce7', iconColor: '#16a34a' },
+    { label: 'Processing',        value: processing, icon: Clock,       color: '#fef9c3', iconColor: '#d97706' },
+    { label: 'Images Uploaded',   value: withImage,  icon: ImageIcon,   color: '#ede9fe', iconColor: '#7c3aed' },
   ];
 
   return (
@@ -86,12 +87,22 @@ export default function Dashboard() {
         <div>
           <div className="page-eyebrow">Clinical Research</div>
           <h1 className="page-title">Medical Imaging Dashboard</h1>
-          <p className="page-subtitle">Overview of case activity and analysis outcomes.</p>
+          <p className="page-subtitle">Overview of real persisted case activity.</p>
         </div>
         <button className="btn btn-primary" onClick={() => navigate('/cases/new')}>
           <span>+</span> New Case
         </button>
       </div>
+
+      {loadError && (
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: 10, padding: '14px 18px',
+          background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 12,
+          color: '#dc2626', fontSize: 13.5, marginBottom: 20,
+        }}>
+          <AlertTriangle size={16} />{loadError}
+        </div>
+      )}
 
       {/* Stats */}
       {loading
@@ -100,18 +111,13 @@ export default function Dashboard() {
           ))}</div>
         : (
           <div className="stats-grid">
-            {STATS.map(({ label, value, icon: Icon, color, iconColor, change, up }) => (
+            {STATS.map(({ label, value, icon: Icon, color, iconColor }) => (
               <div key={label} className="stat-card">
                 <div className="stat-icon" style={{ background: color }}>
                   <Icon size={22} style={{ color: iconColor }} />
                 </div>
                 <div className="stat-value">{value}</div>
                 <div className="stat-label">{label}</div>
-                {change && (
-                  <div className={`stat-change ${up ? 'up' : 'down'}`}>
-                    <TrendingUp size={12} /> {change} this month
-                  </div>
-                )}
               </div>
             ))}
           </div>
@@ -122,7 +128,7 @@ export default function Dashboard() {
         <div className="card">
           <div className="card-header">
             <h2 className="card-title">Weekly Case Volume</h2>
-            <span className="badge badge-blue">This week</span>
+            <span className="badge badge-blue">Illustrative — not real data</span>
           </div>
           <div className="card-body" style={{ height: 200 }}>
             <Bar data={barData} options={barOptions} />
@@ -131,23 +137,29 @@ export default function Dashboard() {
 
         <div className="card">
           <div className="card-header">
-            <h2 className="card-title">Severity Distribution</h2>
+            <h2 className="card-title">Status Distribution</h2>
           </div>
           <div className="card-body" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
-            <div style={{ height: 140, width: 140 }}>
-              <Doughnut data={doughnutData} options={{ responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, cutout: '70%' }} />
-            </div>
-            <div style={{ width: '100%', display: 'grid', gap: 6 }}>
-              {sevDist.map((s) => (
-                <div key={s.label} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: 12 }}>
-                  <span style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
-                    <span style={{ width: 9, height: 9, borderRadius: '50%', background: s.color, display: 'inline-block' }} />
-                    <span style={{ color: '#475569' }}>{s.label}</span>
-                  </span>
-                  <span style={{ fontWeight: 700, color: '#0f172a' }}>{s.count}</span>
+            {total === 0 ? (
+              <div style={{ color: '#94a3b8', fontSize: 13, textAlign: 'center', padding: '20px 0' }}>No cases yet</div>
+            ) : (
+              <>
+                <div style={{ height: 140, width: 140 }}>
+                  <Doughnut data={doughnutData} options={{ responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, cutout: '70%' }} />
                 </div>
-              ))}
-            </div>
+                <div style={{ width: '100%', display: 'grid', gap: 6 }}>
+                  {statusDist.map((s) => (
+                    <div key={s.label} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: 12 }}>
+                      <span style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+                        <span style={{ width: 9, height: 9, borderRadius: '50%', background: s.color, display: 'inline-block' }} />
+                        <span style={{ color: '#475569' }}>{s.label}</span>
+                      </span>
+                      <span style={{ fontWeight: 700, color: '#0f172a' }}>{s.count}</span>
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
           </div>
         </div>
       </div>
@@ -155,36 +167,47 @@ export default function Dashboard() {
       {/* Recent cases */}
       <div className="card">
         <div className="card-header">
-          <h2 className="card-title">Recent Analyses</h2>
+          <h2 className="card-title">Recent Cases</h2>
           <button className="btn btn-ghost btn-sm" onClick={() => navigate('/cases')}>
             View all <ArrowRight size={14} />
           </button>
         </div>
         <div className="card-body" style={{ paddingTop: 0 }}>
+          {/* Unsupported fields notice */}
+          <div style={{
+            display: 'flex', gap: 7, alignItems: 'flex-start', padding: '8px 12px',
+            background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: 8,
+            fontSize: 12, color: '#6b7280', marginBottom: 12,
+          }}>
+            <Info size={12} style={{ flexShrink: 0, marginTop: 1 }} />
+            Modality, severity, and confidence are not yet stored by the backend.
+          </div>
           <div className="table-wrapper">
             <table className="data-table">
               <thead>
                 <tr>
-                  <th>Case ID</th>
-                  <th>Modality</th>
-                  <th>Region</th>
-                  <th>Scan Date</th>
+                  <th>Case Code</th>
+                  <th>Study Type</th>
                   <th>Status</th>
-                  <th>Severity</th>
+                  <th>Image</th>
+                  <th>Created</th>
                   <th></th>
                 </tr>
               </thead>
               <tbody>
                 {loading
-                  ? <tr><td colSpan={7} style={{ textAlign: 'center', color: '#94a3b8', padding: 32 }}>Loading…</td></tr>
+                  ? <tr><td colSpan={6} style={{ textAlign: 'center', color: '#94a3b8', padding: 32 }}>Loading…</td></tr>
+                  : recent.length === 0
+                  ? <tr><td colSpan={6} style={{ textAlign: 'center', color: '#94a3b8', padding: 32 }}>No cases yet. <button className="btn btn-ghost btn-sm" onClick={() => navigate('/cases/new')}>Create one →</button></td></tr>
                   : recent.map((c) => (
                     <tr key={c.id} style={{ cursor: 'pointer' }} onClick={() => navigate(`/cases/${c.id}`)}>
-                      <td><code style={{ fontFamily: 'monospace', fontSize: 13, color: '#1d4ed8' }}>{c.id}</code></td>
-                      <td style={{ color: '#475569' }}>{c.modality}</td>
-                      <td style={{ color: '#475569' }}>{c.region}</td>
-                      <td style={{ color: '#94a3b8', fontSize: 13 }}>{c.scanDate}</td>
+                      <td><code style={{ fontFamily: 'monospace', fontSize: 13, color: '#1d4ed8' }}>{c.caseCode}</code></td>
+                      <td style={{ color: '#475569', fontSize: 13 }}>{c.studyType}</td>
                       <td><StatusBadge status={c.status} /></td>
-                      <td>{c.severity ? <SeverityBadge sev={c.severity} /> : <span style={{ color: '#94a3b8', fontSize: 12 }}>—</span>}</td>
+                      <td style={{ textAlign: 'center' }}>
+                        {c.hasImage ? <ImageIcon size={13} style={{ color: '#22c55e' }} /> : <span style={{ color: '#e2e8f0' }}>—</span>}
+                      </td>
+                      <td style={{ color: '#94a3b8', fontSize: 13 }}>{new Date(c.createdAt).toLocaleDateString()}</td>
                       <td>
                         <button className="btn btn-ghost btn-sm" onClick={(e) => { e.stopPropagation(); navigate(`/cases/${c.id}`); }}>
                           <ArrowRight size={14} />
@@ -198,21 +221,6 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Processing status */}
-      {processing > 0 && (
-        <div style={{
-          marginTop: 20, padding: '14px 18px', background: '#eff6ff',
-          border: '1px solid #bfdbfe', borderRadius: 12,
-          display: 'flex', alignItems: 'center', gap: 12, color: '#1d4ed8', fontSize: 13.5,
-        }}>
-          <div style={{
-            width: 12, height: 12, borderRadius: '50%',
-            background: '#3b82f6', animation: 'pulse 1.5s infinite',
-          }} />
-          <strong>{processing}</strong> case{processing > 1 ? 's' : ''} currently processing. Results will appear automatically.
-          <style>{`@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }`}</style>
-        </div>
-      )}
     </AppShell>
   );
 }
@@ -225,20 +233,4 @@ function StatusBadge({ status }) {
     Failed:     'badge-red',
   };
   return <span className={`badge ${map[status] || 'badge-gray'}`}>{status}</span>;
-}
-
-function SeverityBadge({ sev }) {
-  const map = {
-    Normal:   'badge-green',
-    Mild:     'badge-yellow',
-    Moderate: 'badge-orange',
-    Severe:   'badge-red',
-    Critical: 'badge-red',
-  };
-  return (
-    <span className={`badge ${map[sev] || 'badge-gray'}`}>
-      <span className={`severity-dot severity-${sev?.toLowerCase()}`} />
-      {sev}
-    </span>
-  );
 }

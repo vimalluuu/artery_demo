@@ -3,7 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { Eye, EyeOff, AlertCircle } from 'lucide-react';
 
-const ROLES = ['Clinician', 'Researcher', 'DataScientist', 'Admin'];
+const ROLES = ['Clinician', 'Researcher', 'DataScientist'];
 
 export default function Register() {
   const { register } = useAuth();
@@ -20,7 +20,7 @@ export default function Register() {
   const submit = async (e) => {
     e.preventDefault();
     if (form.password !== form.confirm) { setError('Passwords do not match.'); return; }
-    if (form.password.length < 8) { setError('Password must be at least 8 characters.'); return; }
+    if (form.password.length < 12) { setError('Password must be at least 12 characters.'); return; }
     setError(''); setLoading(true);
     try {
       await register({ name: form.name, email: form.email, password: form.password, role: form.role, institution: form.institution });
@@ -88,7 +88,7 @@ export default function Register() {
               <select id="role" name="role" className="form-select" value={form.role} onChange={handle}>
                 {ROLES.map((r) => <option key={r} value={r}>{r}</option>)}
               </select>
-              <p className="form-hint">Admin assigns final roles — select closest match for now.</p>
+              <p className="form-hint">Administrator access can only be assigned by an existing administrator.</p>
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
@@ -96,7 +96,7 @@ export default function Register() {
                 <label className="form-label" htmlFor="reg-password">Password</label>
                 <div style={{ position: 'relative' }}>
                   <input id="reg-password" name="password" type={showPw ? 'text' : 'password'}
-                    className="form-input" placeholder="Min. 8 characters"
+                    className="form-input" placeholder="Min. 12 characters"
                     value={form.password} onChange={handle} required style={{ paddingRight: 44 }} />
                   <button type="button" onClick={() => setShowPw((s) => !s)}
                     style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#64748b' }}>

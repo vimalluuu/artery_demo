@@ -1,21 +1,21 @@
-import { useState } from 'react';
-import { Users, Search, Plus, Shield, UserCheck, UserX, ChevronDown } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Search, Shield, UserCheck, UserX, ChevronDown } from 'lucide-react';
 import AppShell from '../../components/AppShell';
-
-const MOCK_USERS = [
-  { id: 'u-001', name: 'Dr. Aisha Patel',  email: 'aisha.patel@research.med',   role: 'Clinician',     status: 'Active',   lastLogin: '2026-10-13' },
-  { id: 'u-002', name: 'Dr. James Osei',   email: 'james.osei@research.med',    role: 'Researcher',    status: 'Active',   lastLogin: '2026-10-12' },
-  { id: 'u-003', name: 'Dr. Liu Wei',      email: 'liu.wei@research.med',       role: 'DataScientist', status: 'Active',   lastLogin: '2026-10-10' },
-  { id: 'u-004', name: 'Prof. Sara Khan',  email: 'sara.khan@research.med',     role: 'Admin',         status: 'Active',   lastLogin: '2026-10-13' },
-  { id: 'u-005', name: 'Dr. Tom Rivera',   email: 'tom.rivera@research.med',    role: 'Clinician',     status: 'Inactive', lastLogin: '2026-09-15' },
-  { id: 'u-006', name: 'Dr. Yuki Tanaka',  email: 'yuki.tanaka@research.med',   role: 'Researcher',    status: 'Active',   lastLogin: '2026-10-11' },
-];
+import api from '../../api/client';
+import { toUser } from '../../api/auth-contract';
 
 const ROLES = ['Clinician', 'Researcher', 'DataScientist', 'Admin'];
 const ROLE_BADGE = { Clinician: 'badge-blue', Researcher: 'badge-teal', DataScientist: 'badge-purple', Admin: 'badge-red' };
 
 export default function AdminUsers() {
-  const [users, setUsers]     = useState(MOCK_USERS);
+  const [users, setUsers]     = useState([]);
+  const [error, setError] = useState('');
+  const [busy, setBusy] = useState(false);
+  const asRow = (u) => ({ ...toUser(u), status: u.is_active ? 'Active' : 'Inactive' });
+  useEffect(() => {
+    api.get('/admin/users?limit=500').then(({ data }) => setUsers(data.map(asRow)))
+      .catch((err) => setError(err.message));
+  }, []);
   const [search, setSearch]   = useState('');
   const [editId, setEditId]   = useState(null);
   const [editRole, setEditRole] = useState('');
@@ -26,14 +26,19 @@ export default function AdminUsers() {
     return !q || u.name.toLowerCase().includes(q) || u.email.toLowerCase().includes(q) || u.role.toLowerCase().includes(q);
   });
 
-  const applyRole = (id) => {
-    setUsers((prev) => prev.map((u) => u.id === id ? { ...u, role: editRole } : u));
-    setEditId(null);
+  const saveAccess = async (id, role, is_active) => {
+    setError(''); setBusy(true);
+    try {
+      const { data } = await api.patch(`/admin/users/${id}`, { role, is_active });
+      setUsers((prev) => prev.map((u) => u.id === id ? asRow(data) : u));
+      setEditId(null); setConfirm(null);
+    } catch (err) { setError(err.message); }
+    finally { setBusy(false); }
   };
-
+  const applyRole = (id) => saveAccess(id, editRole, users.find((u) => u.id === id).is_active);
   const toggleStatus = (id) => {
-    setUsers((prev) => prev.map((u) => u.id === id ? { ...u, status: u.status === 'Active' ? 'Inactive' : 'Active' } : u));
-    setConfirm(null);
+    const user = users.find((u) => u.id === id);
+    return saveAccess(id, user.role, !user.is_active);
   };
 
   return (
@@ -44,17 +49,16 @@ export default function AdminUsers() {
           <h1 className="page-title">User Management</h1>
           <p className="page-subtitle">{users.filter((u) => u.status === 'Active').length} active of {users.length} total users</p>
         </div>
-        <button id="invite-user-btn" className="btn btn-primary" onClick={() => alert('[Demo] Invite user flow — connect to POST /auth/register')}>
-          <Plus size={15} /> Invite User
-        </button>
+
       </div>
 
       {/* Note: backend enforces roles */}
       <div className="ai-disclaimer" style={{ marginBottom: 20, background: '#eff6ff', borderColor: '#bfdbfe' }}>
         <Shield size={15} />
-        <span>Role changes here are UI-convenience only. The backend enforces all permissions independently.</span>
+        <span>Role and status changes are saved to the server and revoke sessions for that account. Showing up to 500 accounts.</span>
       </div>
 
+      {error && <p role="alert">{error}</p>}
       {/* Stats */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 14, marginBottom: 24 }}>
         {ROLES.map((r) => (
@@ -85,7 +89,6 @@ export default function AdminUsers() {
                   <th>Email</th>
                   <th>Role</th>
                   <th>Status</th>
-                  <th>Last login</th>
                   <th>Actions</th>
                 </tr>
               </thead>
@@ -112,7 +115,7 @@ export default function AdminUsers() {
                             value={editRole} onChange={(e) => setEditRole(e.target.value)}>
                             {ROLES.map((r) => <option key={r}>{r}</option>)}
                           </select>
-                          <button className="btn btn-primary btn-sm" onClick={() => applyRole(u.id)}>Save</button>
+                          <button className="btn btn-primary btn-sm" disabled={busy} onClick={() => applyRole(u.id)}>Save</button>
                           <button className="btn btn-ghost btn-sm" onClick={() => setEditId(null)}>✕</button>
                         </div>
                       ) : (
@@ -132,7 +135,6 @@ export default function AdminUsers() {
                         {u.status}
                       </span>
                     </td>
-                    <td style={{ fontSize: 12.5, color: '#94a3b8' }}>{u.lastLogin}</td>
                     <td>
                       <div style={{ display: 'flex', gap: 6 }}>
                         {u.status === 'Active' ? (
@@ -144,7 +146,7 @@ export default function AdminUsers() {
                         ) : (
                           <button className="btn btn-secondary btn-sm"
                             id={`activate-${u.id}-btn`}
-                            onClick={() => toggleStatus(u.id)}>
+                            disabled={busy} onClick={() => toggleStatus(u.id)}>
                             <UserCheck size={13} /> Activate
                           </button>
                         )}
@@ -172,7 +174,7 @@ export default function AdminUsers() {
             </div>
             <div className="modal-footer">
               <button className="btn btn-secondary" onClick={() => setConfirm(null)}>Cancel</button>
-              <button id="confirm-deactivate-btn" className="btn btn-danger" onClick={() => toggleStatus(confirm.id)}>
+              <button id="confirm-deactivate-btn" className="btn btn-danger" disabled={busy} onClick={() => toggleStatus(confirm.id)}>
                 <UserX size={14} /> Deactivate
               </button>
             </div>

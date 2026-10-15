@@ -24,3 +24,15 @@ class CaseResponse(BaseModel):
     status: str
     image_path: str | None
     created_at: datetime
+
+
+class ImageMetadata(BaseModel):
+    case_id: int
+    case_code: str
+    filename: str
+    format: str
+    width: int
+    height: int
+    channels: int
+    pixel_dtype: str
+    file_size_bytes: int

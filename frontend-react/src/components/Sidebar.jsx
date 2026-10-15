@@ -41,7 +41,7 @@ export default function Sidebar() {
       {/* Navigation */}
       <nav className="sidebar-nav" aria-label="Main navigation">
         <div className="nav-section-label">Workspace</div>
-        {NAV.map((item) => (
+        {NAV.filter((item) => item.path !== '/cases/new' || isRole('Clinician', 'Admin')).map((item) => (
           <button
             key={item.path}
             className={`nav-item${isActive(item.path) ? ' active' : ''}`}
@@ -56,7 +56,7 @@ export default function Sidebar() {
         {isRole('Admin', 'DataScientist') && (
           <>
             <div className="nav-section-label">Administration</div>
-            {ADMIN_NAV.map((item) => (
+            {ADMIN_NAV.filter((item) => item.path !== '/admin/users' || isRole('Admin')).map((item) => (
               <button
                 key={item.path}
                 className={`nav-item${isActive(item.path) ? ' active' : ''}`}

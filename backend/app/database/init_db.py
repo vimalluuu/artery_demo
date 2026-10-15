@@ -1,11 +1,13 @@
+"""Compatibility entry point: run versioned migrations, never create_all at startup."""
+from pathlib import Path
 
-from app.database.session import Base, engine
-from app.models import Case, Patient, User
+from alembic import command
+from alembic.config import Config
 
 
 def init_db() -> None:
-    Base.metadata.create_all(bind=engine)
-    print("Database tables created successfully.")
+    config = Config(str(Path(__file__).resolve().parents[2] / "alembic.ini"))
+    command.upgrade(config, "head")
 
 
 if __name__ == "__main__":
