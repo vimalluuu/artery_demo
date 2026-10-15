@@ -2,7 +2,11 @@
  * cases-contract.test.js
  *
  * Tests for the cases and patients API adapters:
- *   - Field mapping (backend → UI shape)
+ *   - Field mapping (backend → UI shape) including new metadata fields
+ *   - Status title-casing
+ *   - fromCaseForm: new fields included in payload / empty strings → omitted
+ *   - fromCaseUpdateForm: partial update semantics
+ *   - casesApi.update: PATCH call construction
  *   - Request payloads (UI form → backend JSON / FormData)
  *   - Upload FormData construction
  *   - Error handling (403, 404, 409, 415)
@@ -11,7 +15,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
-  toCase, fromCaseForm, createCasesApi,
+  toCase, fromCaseForm, fromCaseUpdateForm, createCasesApi,
 } from '../src/api/cases-contract.js';
 import {
   toPatient, fromPatientForm, createPatientsApi,
@@ -22,7 +26,8 @@ import {
 test('toCase maps backend integer id to UI id', () => {
   const raw = {
     id: 42, patient_id: 7, case_code: 'CASE-001', study_type: 'Coronary Artery Analysis',
-    status: 'Pending', image_path: null, created_at: '2026-10-15T10:00:00Z',
+    status: 'pending', image_path: null, created_at: '2026-10-15T10:00:00Z',
+    modality: null, region: null, scan_date: null, age_years: null, sex: null, notes: null,
   };
   const c = toCase(raw);
   assert.equal(c.id, 42, 'id must be the integer DB PK');
@@ -37,29 +42,10 @@ test('toCase maps backend integer id to UI id', () => {
 test('toCase sets hasImage=true when image_path is a non-null string', () => {
   const raw = {
     id: 1, patient_id: 1, case_code: 'C', study_type: 'S',
-    status: 'Complete', image_path: '/uploads/abc.png', created_at: '2026-01-01T00:00:00Z',
+    status: 'complete', image_path: '/uploads/abc.png', created_at: '2026-01-01T00:00:00Z',
+    modality: null, region: null, scan_date: null, age_years: null, sex: null, notes: null,
   };
   assert.equal(toCase(raw).hasImage, true);
-});
-
-test('toCase does NOT invent values for unsupported backend fields', () => {
-  const raw = {
-    id: 1, patient_id: 1, case_code: 'C', study_type: 'S',
-    status: 'Pending', image_path: null, created_at: '2026-01-01T00:00:00Z',
-  };
-  const c = toCase(raw);
-  // These fields have no backend column — must be null/[], not invented values
-  assert.equal(c.modality,   null, 'modality must be null — not supported by backend');
-  assert.equal(c.region,     null, 'region must be null — not supported by backend');
-  assert.equal(c.scanDate,   null, 'scanDate must be null — not supported by backend');
-  assert.equal(c.severity,   null, 'severity must be null — not supported by backend');
-  assert.equal(c.confidence, null, 'confidence must be null — not supported by backend');
-  assert.equal(c.createdBy,  null, 'createdBy must be null — not supported by backend');
-  assert.equal(c.age,        null, 'age must be null — not supported by backend');
-  assert.equal(c.gender,     null, 'gender must be null — not supported by backend');
-  assert.equal(c.notes,      null, 'notes must be null — not supported by backend');
-  assert.deepEqual(c.riskFactors, [], 'riskFactors must be [] — not supported by backend');
-  assert.deepEqual(c.analyses,    [], 'analyses must be [] — no inference backend');
 });
 
 test('toCase title-cases lowercase backend status values', () => {
@@ -71,83 +57,244 @@ test('toCase title-cases lowercase backend status values', () => {
     ['failed',     'Failed'],
   ];
   for (const [backendStatus, expectedUI] of statuses) {
-    const raw = { id: 1, patient_id: 1, case_code: 'C', study_type: 'S', status: backendStatus, image_path: null, created_at: '' };
+    const raw = { id: 1, patient_id: 1, case_code: 'C', study_type: 'S', status: backendStatus,
+      image_path: null, created_at: '', modality: null, region: null, scan_date: null,
+      age_years: null, sex: null, notes: null };
     assert.equal(toCase(raw).status, expectedUI, `'${backendStatus}' should map to '${expectedUI}'`);
   }
 });
 
+// ─── toCase: new metadata fields (migration 0003_case_meta) ───────────────────
+
+test('toCase maps all new metadata fields from backend', () => {
+  const raw = {
+    id: 5, patient_id: 2, case_code: 'CASE-007', study_type: 'Renal Artery Analysis',
+    status: 'pending', image_path: null, created_at: '2026-10-01T00:00:00Z',
+    modality:  'CT Angiography',
+    region:    'Renal',
+    scan_date: '2026-09-20',
+    age_years: 58,
+    sex:       'M',
+    notes:     'Mild stenosis suspected',
+  };
+  const c = toCase(raw);
+  assert.equal(c.modality,  'CT Angiography',        'modality must be mapped');
+  assert.equal(c.region,    'Renal',                  'region must be mapped');
+  assert.equal(c.scanDate,  '2026-09-20',             'scan_date → scanDate');
+  assert.equal(c.age,       58,                       'age_years → age');
+  assert.equal(c.gender,    'M',                      'sex → gender');
+  assert.equal(c.notes,     'Mild stenosis suspected','notes must be mapped');
+});
+
+test('toCase maps null metadata fields for pre-migration cases', () => {
+  const raw = {
+    id: 1, patient_id: 1, case_code: 'C', study_type: 'S', status: 'pending',
+    image_path: null, created_at: '',
+    modality: null, region: null, scan_date: null, age_years: null, sex: null, notes: null,
+  };
+  const c = toCase(raw);
+  assert.equal(c.modality,  null, 'null modality preserved');
+  assert.equal(c.region,    null, 'null region preserved');
+  assert.equal(c.scanDate,  null, 'null scan_date → null scanDate');
+  assert.equal(c.age,       null, 'null age_years → null age');
+  assert.equal(c.gender,    null, 'null sex → null gender');
+  assert.equal(c.notes,     null, 'null notes preserved');
+});
+
+test('toCase maps absent metadata fields (undefined → null)', () => {
+  // Backend response from before migration may lack the new columns
+  const raw = {
+    id: 1, patient_id: 1, case_code: 'C', study_type: 'S', status: 'pending',
+    image_path: null, created_at: '',
+    // No modality, region, scan_date, age_years, sex, notes keys at all
+  };
+  const c = toCase(raw);
+  assert.equal(c.modality, null);
+  assert.equal(c.region,   null);
+  assert.equal(c.scanDate, null);
+  assert.equal(c.age,      null);
+  assert.equal(c.gender,   null);
+  assert.equal(c.notes,    null);
+});
+
+test('toCase does NOT invent values for still-unsupported backend fields', () => {
+  const raw = {
+    id: 1, patient_id: 1, case_code: 'C', study_type: 'S', status: 'pending',
+    image_path: null, created_at: '',
+    modality: null, region: null, scan_date: null, age_years: null, sex: null, notes: null,
+  };
+  const c = toCase(raw);
+  // These fields have no backend column — must remain null/[], not invented
+  assert.equal(c.severity,   null, 'severity must be null — not supported by backend');
+  assert.equal(c.confidence, null, 'confidence must be null — not supported by backend');
+  assert.equal(c.createdBy,  null, 'createdBy must be null — not supported by backend');
+  assert.deepEqual(c.riskFactors, [], 'riskFactors must be [] — not supported by backend');
+  assert.deepEqual(c.analyses,    [], 'analyses must be [] — no inference backend');
+});
+
 // ─── fromCaseForm payload ─────────────────────────────────────────────────────
 
-test('fromCaseForm sends patient_id, case_code, study_type only', () => {
+test('fromCaseForm sends required fields', () => {
+  const form = { patientId: '5', caseCode: ' CASE-007 ', studyType: 'Renal Artery Analysis',
+    modality: '', region: '', scanDate: '', age: '', gender: '', notes: '' };
+  const payload = fromCaseForm(form);
+  assert.equal(payload.patient_id, 5);
+  assert.equal(payload.case_code, 'CASE-007');
+  assert.equal(payload.study_type, 'Renal Artery Analysis');
+});
+
+test('fromCaseForm includes new metadata fields when provided', () => {
   const form = {
-    patientId: '5', caseCode: ' CASE-007 ', studyType: 'Renal Artery Analysis',
-    // UI-only fields that must NOT be sent to backend
-    modality: 'CT Angiography', region: 'Renal', scanDate: '2026-10-01',
-    age: '58', gender: 'M', riskFactors: ['Hypertension'],
+    patientId: '3', caseCode: 'CASE-X', studyType: 'Coronary Artery Analysis',
+    modality: 'CT Angiography', region: 'Coronary',
+    scanDate: '2026-09-01', age: '62', gender: 'F', notes: 'Stable angina',
   };
   const payload = fromCaseForm(form);
-  assert.deepEqual(payload, {
-    patient_id: 5,
-    case_code:  'CASE-007',    // trimmed
-    study_type: 'Renal Artery Analysis',
-  });
-  assert.ok(!('modality'    in payload), 'modality must not be sent to backend');
-  assert.ok(!('region'      in payload), 'region must not be sent to backend');
-  assert.ok(!('scanDate'    in payload), 'scanDate must not be sent to backend');
-  assert.ok(!('age'         in payload), 'age must not be sent to backend');
-  assert.ok(!('riskFactors' in payload), 'riskFactors must not be sent to backend');
+  assert.equal(payload.modality,  'CT Angiography');
+  assert.equal(payload.region,    'Coronary');
+  assert.equal(payload.scan_date, '2026-09-01');
+  assert.equal(payload.age_years, 62, 'age string parsed to integer age_years');
+  assert.equal(payload.sex,       'F', 'gender → sex');
+  assert.equal(payload.notes,     'Stable angina');
+  assert.ok(!('gender' in payload), 'UI field name "gender" must not be sent — backend expects "sex"');
+  assert.ok(!('age'    in payload), 'UI field name "age" must not be sent — backend expects "age_years"');
+  assert.ok(!('scanDate' in payload), 'UI field name "scanDate" must not be sent — backend expects "scan_date"');
+});
+
+test('fromCaseForm omits metadata fields when empty strings', () => {
+  const form = { patientId: '1', caseCode: 'X', studyType: 'Y',
+    modality: '', region: '', scanDate: '', age: '', gender: '', notes: '' };
+  const payload = fromCaseForm(form);
+  assert.ok(!('modality'  in payload), 'empty modality omitted');
+  assert.ok(!('region'    in payload), 'empty region omitted');
+  assert.ok(!('scan_date' in payload), 'empty scan_date omitted');
+  assert.ok(!('age_years' in payload), 'empty age omitted');
+  assert.ok(!('sex'       in payload), 'empty gender/sex omitted');
+  assert.ok(!('notes'     in payload), 'blank notes omitted');
 });
 
 test('fromCaseForm parses patientId as integer', () => {
-  const payload = fromCaseForm({ patientId: '12', caseCode: 'X', studyType: 'Y' });
+  const payload = fromCaseForm({ patientId: '12', caseCode: 'X', studyType: 'Y',
+    modality: '', region: '', scanDate: '', age: '', gender: '', notes: '' });
   assert.equal(typeof payload.patient_id, 'number');
   assert.equal(payload.patient_id, 12);
 });
 
-// ─── createCasesApi — list / get / create ─────────────────────────────────────
+// ─── fromCaseUpdateForm (PATCH partial update) ────────────────────────────────
+
+test('fromCaseUpdateForm includes only non-empty fields', () => {
+  const form = { studyType: 'Aortic Analysis', modality: 'MRA', region: '',
+    scanDate: '', age: '71', gender: 'M', notes: '' };
+  const payload = fromCaseUpdateForm(form);
+  assert.equal(payload.study_type, 'Aortic Analysis');
+  assert.equal(payload.modality,   'MRA');
+  assert.equal(payload.age_years,  71);
+  assert.equal(payload.sex,        'M');
+  assert.ok(!('region'    in payload), 'empty region omitted from PATCH');
+  assert.ok(!('scan_date' in payload), 'empty scan_date omitted from PATCH');
+  assert.ok(!('notes'     in payload), 'empty notes omitted from PATCH');
+});
+
+test('fromCaseUpdateForm returns empty object when nothing set', () => {
+  const payload = fromCaseUpdateForm({ studyType: '', modality: '', region: '',
+    scanDate: '', age: '', gender: '', notes: '' });
+  assert.deepEqual(payload, {}, 'empty form produces empty payload');
+});
+
+// ─── createCasesApi — list / get / create / update ───────────────────────────
 
 test('casesApi.list maps all results through toCase', async () => {
   const raw = [
-    { id: 1, patient_id: 1, case_code: 'A', study_type: 'S', status: 'Pending', image_path: null, created_at: '2026-01-01T00:00:00Z' },
-    { id: 2, patient_id: 2, case_code: 'B', study_type: 'T', status: 'Complete', image_path: '/x.png', created_at: '2026-01-02T00:00:00Z' },
+    { id: 1, patient_id: 1, case_code: 'A', study_type: 'S', status: 'pending',
+      image_path: null, created_at: '2026-01-01T00:00:00Z',
+      modality: 'MRA', region: 'Carotid', scan_date: '2026-01-01',
+      age_years: 45, sex: 'F', notes: null },
+    { id: 2, patient_id: 2, case_code: 'B', study_type: 'T', status: 'complete',
+      image_path: '/x.png', created_at: '2026-01-02T00:00:00Z',
+      modality: null, region: null, scan_date: null, age_years: null, sex: null, notes: null },
   ];
   const api = createCasesApi({ get: async () => ({ data: raw }) });
   const cases = await api.list();
   assert.equal(cases.length, 2);
-  assert.equal(cases[0].id, 1);
+  assert.equal(cases[0].modality, 'MRA');
+  assert.equal(cases[0].gender, 'F');
   assert.equal(cases[1].hasImage, true);
   assert.equal(cases[0].analyses.length, 0, 'analyses always empty');
 });
 
 test('casesApi.get sends correct path with integer id', async () => {
   let calledPath;
-  const raw = { id: 7, patient_id: 3, case_code: 'C', study_type: 'S', status: 'Pending', image_path: null, created_at: '' };
+  const raw = { id: 7, patient_id: 3, case_code: 'C', study_type: 'S', status: 'pending',
+    image_path: null, created_at: '',
+    modality: null, region: null, scan_date: null, age_years: null, sex: null, notes: null };
   const api = createCasesApi({ get: async (path) => { calledPath = path; return { data: raw }; } });
   const c = await api.get(7);
   assert.equal(calledPath, '/cases/7');
   assert.equal(c.id, 7);
 });
 
-test('casesApi.create sends correct payload and maps response', async () => {
+test('casesApi.create sends full payload including new metadata fields', async () => {
   const calls = [];
-  const raw = { id: 10, patient_id: 5, case_code: 'CASE-NEW', study_type: 'Coronary Artery Analysis', status: 'Pending', image_path: null, created_at: '' };
+  const raw = { id: 10, patient_id: 5, case_code: 'CASE-NEW', study_type: 'Renal Artery Analysis',
+    status: 'pending', image_path: null, created_at: '',
+    modality: 'CT Angiography', region: 'Renal', scan_date: '2026-09-01',
+    age_years: 62, sex: 'F', notes: 'Suspected stenosis' };
   const api = createCasesApi({
     post: async (path, body) => { calls.push({ path, body }); return { data: raw }; },
   });
-  const form = { patientId: '5', caseCode: 'CASE-NEW', studyType: 'Coronary Artery Analysis' };
+  const form = { patientId: '5', caseCode: 'CASE-NEW', studyType: 'Renal Artery Analysis',
+    modality: 'CT Angiography', region: 'Renal', scanDate: '2026-09-01',
+    age: '62', gender: 'F', notes: 'Suspected stenosis' };
   const c = await api.create(form);
-  assert.equal(calls.length, 1);
   assert.equal(calls[0].path, '/cases');
-  assert.deepEqual(calls[0].body, { patient_id: 5, case_code: 'CASE-NEW', study_type: 'Coronary Artery Analysis' });
+  assert.equal(calls[0].body.patient_id,  5);
+  assert.equal(calls[0].body.modality,    'CT Angiography');
+  assert.equal(calls[0].body.region,      'Renal');
+  assert.equal(calls[0].body.scan_date,   '2026-09-01');
+  assert.equal(calls[0].body.age_years,   62);
+  assert.equal(calls[0].body.sex,         'F');
+  assert.equal(calls[0].body.notes,       'Suspected stenosis');
   assert.equal(c.id, 10);
-  assert.equal(c.caseCode, 'CASE-NEW');
+  assert.equal(c.modality, 'CT Angiography');
+  assert.equal(c.gender, 'F');
+  assert.equal(c.age, 62);
+});
+
+test('casesApi.update sends PATCH to correct path', async () => {
+  const calls = [];
+  const raw = { id: 3, patient_id: 1, case_code: 'C', study_type: 'S', status: 'pending',
+    image_path: null, created_at: '',
+    modality: 'MRA', region: null, scan_date: null, age_years: null, sex: null, notes: null };
+  const api = createCasesApi({
+    patch: async (path, body) => { calls.push({ path, body }); return { data: raw }; },
+  });
+  const form = { modality: 'MRA', region: '', scanDate: '', age: '', gender: '', notes: '', studyType: '' };
+  const c = await api.update(3, form);
+  assert.equal(calls[0].path, '/cases/3');
+  assert.deepEqual(calls[0].body, { modality: 'MRA' }, 'only non-empty field sent');
+  assert.equal(c.modality, 'MRA');
+});
+
+test('casesApi.update skips request when payload is empty', async () => {
+  let getCalled = false;
+  const raw = { id: 3, patient_id: 1, case_code: 'C', study_type: 'S', status: 'pending',
+    image_path: null, created_at: '',
+    modality: null, region: null, scan_date: null, age_years: null, sex: null, notes: null };
+  const api = createCasesApi({
+    get: async () => { getCalled = true; return { data: raw }; },
+    patch: async () => { throw new Error('PATCH should not be called for empty update'); },
+  });
+  await api.update(3, { modality: '', region: '', scanDate: '', age: '', gender: '', notes: '', studyType: '' });
+  assert.ok(getCalled, 'falls back to GET when nothing to update');
 });
 
 // ─── createCasesApi — upload ───────────────────────────────────────────────────
 
 test('casesApi.upload posts FormData to correct path with multipart header', async () => {
   const calls = [];
-  const raw = { id: 3, patient_id: 1, case_code: 'C', study_type: 'S', status: 'Processing', image_path: '/x.png', created_at: '' };
+  const raw = { id: 3, patient_id: 1, case_code: 'C', study_type: 'S', status: 'processing',
+    image_path: '/x.png', created_at: '',
+    modality: null, region: null, scan_date: null, age_years: null, sex: null, notes: null };
   const api = createCasesApi({
     post: async (path, body, opts) => { calls.push({ path, body, opts }); return { data: raw }; },
   });
@@ -244,7 +391,11 @@ test('casesApi.create propagates 409 conflict', async () => {
   const api = createCasesApi({
     post: async () => { const e = new Error('Case code already exists'); e.response = { status: 409 }; throw e; },
   });
-  await assert.rejects(api.create({ patientId: '1', caseCode: 'DUP', studyType: 'S' }), /Case code already exists/);
+  await assert.rejects(
+    api.create({ patientId: '1', caseCode: 'DUP', studyType: 'S',
+      modality: '', region: '', scanDate: '', age: '', gender: '', notes: '' }),
+    /Case code already exists/,
+  );
 });
 
 test('casesApi.upload propagates 415 unsupported media type', async () => {

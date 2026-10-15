@@ -1,7 +1,6 @@
+from datetime import date, datetime
 
-from datetime import datetime
-
-from sqlalchemy import DateTime, ForeignKey, String, func
+from sqlalchemy import Date, DateTime, ForeignKey, SmallInteger, String, Text, func
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.database.session import Base
@@ -39,3 +38,24 @@ class Case(Base):
         server_default=func.now(),
         nullable=False,
     )
+
+    # ── Metadata fields added in migration 0003_case_meta ─────────────────────
+    # All nullable: existing cases created before this migration are unaffected.
+
+    # Imaging modality: "CT Angiography" | "MRA" | "CTA" | "DSA" | "Ultrasound" | "Other"
+    modality: Mapped[str | None] = mapped_column(String(50), nullable=True)
+
+    # Anatomical region: "Coronary" | "Carotid" | "Renal" | "Peripheral" | "Cerebral" | "Aorta" | "Other"
+    region: Mapped[str | None] = mapped_column(String(50), nullable=True)
+
+    # Date the scan was acquired (not the case-record creation date)
+    scan_date: Mapped[date | None] = mapped_column(Date(), nullable=True)
+
+    # De-identified age at time of scan (whole years, 0–120)
+    age_years: Mapped[int | None] = mapped_column(SmallInteger(), nullable=True)
+
+    # De-identified biological sex: "M" | "F" | "O" (other / not stated)
+    sex: Mapped[str | None] = mapped_column(String(1), nullable=True)
+
+    # Free-text clinical notes (de-identified)
+    notes: Mapped[str | None] = mapped_column(Text(), nullable=True)

@@ -24,7 +24,7 @@ from app.core.roles import CASE_READERS, CLINICAL_WRITERS
 from app.services.audit import record_event
 from app.database.session import get_db
 from app.models import Case, Patient, User
-from app.schemas.case import CaseCreate, CaseResponse, ImageMetadata
+from app.schemas.case import CaseCreate, CaseResponse, CaseUpdate, ImageMetadata
 
 
 router = APIRouter(prefix="/cases", tags=["Cases"])
@@ -145,6 +145,46 @@ def get_case(
         )
     record_event(db, "case.read", current_user.id, case.id)
     db.commit()
+    return case
+
+
+@router.patch(
+    "/{case_id}",
+    response_model=CaseResponse,
+)
+def update_case_metadata(
+    case_id: int,
+    updates: CaseUpdate,
+    current_user: ClinicalWriter,
+    db: DatabaseSession,
+):
+    """Partial update of mutable case fields.
+
+    Only fields present in the request body (non-None) are written.
+    Immutable fields (patient_id, case_code, status, image_path,
+    created_at) are silently ignored if sent.
+    RBAC: Clinician / Admin only.
+    """
+    case = db.get(Case, case_id)
+    if case is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Case not found",
+        )
+
+    mutable = {"study_type", "modality", "region", "scan_date",
+               "age_years", "sex", "notes"}
+    changed = False
+    for field, value in updates.model_dump(exclude_none=True).items():
+        if field in mutable:
+            setattr(case, field, value)
+            changed = True
+
+    if changed:
+        record_event(db, "case.updated", current_user.id, case.id)
+        db.commit()
+        db.refresh(case)
+
     return case
 
 

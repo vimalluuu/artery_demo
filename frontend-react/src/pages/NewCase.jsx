@@ -33,6 +33,14 @@ const STUDY_TYPES = [
   'Aortic Analysis',
 ];
 
+const MODALITY_OPTIONS = [
+  '', 'CT Angiography', 'MRA', 'CTA', 'DSA', 'Ultrasound', 'Other',
+];
+
+const REGION_OPTIONS = [
+  '', 'Coronary', 'Carotid', 'Renal', 'Peripheral', 'Cerebral', 'Aorta', 'Other',
+];
+
 export default function NewCase() {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -51,6 +59,13 @@ export default function NewCase() {
     patientNotes: '',       // new patient: optional notes
     caseCode:     '',       // e.g. CASE-2026-001
     studyType:    STUDY_TYPES[0],
+    // Metadata fields (all optional — now persisted in migration 0003_case_meta)
+    modality:  '',
+    region:    '',
+    scanDate:  '',
+    age:       '',
+    gender:    '',
+    notes:     '',
   });
   const [loading, setLoading] = useState(false);
   const [error, setError]     = useState('');
@@ -101,11 +116,17 @@ export default function NewCase() {
         patientId = created.id;
       }
 
-      // Step 2: create case
+      // Step 2: create case — pass all metadata fields
       const newCase = await casesApi.create({
         patientId,
         caseCode:  form.caseCode,
         studyType: form.studyType,
+        modality:  form.modality  || undefined,
+        region:    form.region    || undefined,
+        scanDate:  form.scanDate  || undefined,
+        age:       form.age       || undefined,
+        gender:    form.gender    || undefined,
+        notes:     form.notes     || undefined,
       });
 
       // Navigate to the case detail using its integer DB PK
@@ -272,18 +293,62 @@ export default function NewCase() {
                 </div>
               </div>
 
-              {/* Unsupported fields notice */}
-              <div style={{
-                display: 'flex', gap: 10, fontSize: 12.5, color: '#6b7280',
-                background: '#f9fafb', borderRadius: 10, padding: '10px 14px',
-                border: '1px solid #e5e7eb', marginBottom: 16,
-              }}>
-                <Info size={14} style={{ flexShrink: 0, marginTop: 1 }} />
-                <div>
-                  Modality, region, scan date, demographics and risk factors are not yet stored
-                  by the backend. You can include context in the Case Code or Study Type.
-                  These fields will be added in a future backend update.
+              {/* ── Optional metadata ─────────────────────────────────────── */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginTop: 16 }}>
+                <div className="form-group">
+                  <label className="form-label" htmlFor="modality">Modality</label>
+                  <select id="modality" name="modality" className="form-select" value={form.modality} onChange={handle}>
+                    {MODALITY_OPTIONS.map((m) => <option key={m} value={m}>{m || '— Select modality —'}</option>)}
+                  </select>
+                  <p className="form-hint">Imaging technology used</p>
                 </div>
+                <div className="form-group">
+                  <label className="form-label" htmlFor="region">Region</label>
+                  <select id="region" name="region" className="form-select" value={form.region} onChange={handle}>
+                    {REGION_OPTIONS.map((r) => <option key={r} value={r}>{r || '— Select region —'}</option>)}
+                  </select>
+                  <p className="form-hint">Anatomical region of interest</p>
+                </div>
+                <div className="form-group">
+                  <label className="form-label" htmlFor="scanDate">Scan Date</label>
+                  <input
+                    id="scanDate" name="scanDate" type="date"
+                    className="form-input"
+                    value={form.scanDate} onChange={handle}
+                  />
+                  <p className="form-hint">Date the scan was acquired</p>
+                </div>
+                <div className="form-group">
+                  <label className="form-label" htmlFor="age">Age at Scan (years)</label>
+                  <input
+                    id="age" name="age" type="number"
+                    className="form-input"
+                    placeholder="e.g. 58"
+                    min={0} max={120}
+                    value={form.age} onChange={handle}
+                  />
+                  <p className="form-hint">De-identified whole years</p>
+                </div>
+                <div className="form-group">
+                  <label className="form-label" htmlFor="gender">Biological Sex</label>
+                  <select id="gender" name="gender" className="form-select" value={form.gender} onChange={handle}>
+                    <option value="">— Not stated —</option>
+                    <option value="M">M — Male</option>
+                    <option value="F">F — Female</option>
+                    <option value="O">O — Other / not stated</option>
+                  </select>
+                  <p className="form-hint">De-identified sex code stored as M/F/O</p>
+                </div>
+              </div>
+              <div className="form-group" style={{ marginTop: 4 }}>
+                <label className="form-label" htmlFor="notes">Clinical Notes (optional)</label>
+                <textarea
+                  id="notes" name="notes" className="form-textarea"
+                  placeholder="Brief de-identified clinical context (max 2000 chars)…"
+                  value={form.notes} onChange={handle}
+                  rows={3} maxLength={2000}
+                />
+                <p className="form-hint">Do not include any directly identifying information.</p>
               </div>
 
               <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end' }}>
@@ -313,7 +378,7 @@ export default function NewCase() {
             <div className="card-body">
               {[
                 ['1. Select / register patient', 'Link case to a de-identified patient record.'],
-                ['2. Enter case code', 'Assign a unique reference for this study.'],
+                ['2. Enter case details', 'Assign a unique code, study type, and optional metadata.'],
                 ['3. Create case', 'The case record is saved to the database.'],
                 ['4. Upload scan', 'Upload a PNG/JPEG/TIFF file on the case page.'],
                 ['5. Await analysis', 'Model inference is not yet available.'],
