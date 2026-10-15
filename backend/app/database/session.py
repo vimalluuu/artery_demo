@@ -1,14 +1,30 @@
 
-from sqlalchemy import create_engine, text
+from sqlalchemy import create_engine, event, text
 from sqlalchemy.orm import DeclarativeBase, sessionmaker
+from sqlalchemy.pool import StaticPool
 
 from app.core.config import settings
 
 
-engine = create_engine(
-    settings.DATABASE_URL,
-    pool_pre_ping=True,
-)
+def build_engine(url: str):
+    options = {"pool_pre_ping": True}
+    if url.startswith("sqlite:"):
+        if not settings.TESTING:
+            raise ValueError("SQLite is supported only for tests")
+        options["connect_args"] = {"check_same_thread": False}
+        if url in {"sqlite://", "sqlite:///:memory:"}:
+            options["poolclass"] = StaticPool
+    engine = create_engine(url, **options)
+    if engine.dialect.name == "sqlite":
+        @event.listens_for(engine, "connect")
+        def enable_foreign_keys(connection, _):
+            cursor = connection.cursor()
+            cursor.execute("PRAGMA foreign_keys=ON")
+            cursor.close()
+    return engine
+
+
+engine = build_engine(settings.DATABASE_URL)
 
 SessionLocal = sessionmaker(
     bind=engine,

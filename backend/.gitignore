@@ -16,3 +16,8 @@ outputs/*
 .pytest_cache/
 .mypy_cache/
 .vscode/
+.coverage*
+coverage.xml
+htmlcov/
+.env.*
+!.env.example

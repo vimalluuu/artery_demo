@@ -20,9 +20,11 @@ from sqlalchemy.orm import Session
 
 from app.core.config import settings
 from app.core.dependencies import require_roles
+from app.core.roles import CASE_READERS, CLINICAL_WRITERS
+from app.services.audit import record_event
 from app.database.session import get_db
 from app.models import Case, Patient, User
-from app.schemas.case import CaseCreate, CaseResponse
+from app.schemas.case import CaseCreate, CaseResponse, ImageMetadata
 
 
 router = APIRouter(prefix="/cases", tags=["Cases"])
@@ -36,14 +38,14 @@ UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 
 DatabaseSession = Annotated[Session, Depends(get_db)]
 
-AdminOrDoctor = Annotated[
+ClinicalWriter = Annotated[
     User,
-    Depends(require_roles("admin", "doctor")),
+    Depends(require_roles(*CLINICAL_WRITERS)),
 ]
 
 AuthenticatedCaseReader = Annotated[
     User,
-    Depends(require_roles("admin", "doctor", "researcher")),
+    Depends(require_roles(*CASE_READERS)),
 ]
 
 
@@ -53,7 +55,10 @@ def validate_image_file(path: Path, extension: str) -> None:
             with tifffile.TiffFile(path) as image_file:
                 if not image_file.pages:
                     raise ValueError("TIFF contains no image pages")
-                image_file.pages[0].asarray()
+                page = image_file.pages[0]
+                if page.imagewidth > MAX_IMAGE_DIMENSION or page.imagelength > MAX_IMAGE_DIMENSION:
+                    raise ValueError("Image dimensions exceed limit")
+                page.asarray()
         else:
             with Image.open(path) as image:
                 if image.format not in {"PNG", "JPEG"}:
@@ -79,7 +84,7 @@ def validate_image_file(path: Path, extension: str) -> None:
 )
 def create_case(
     case_data: CaseCreate,
-    current_user: AdminOrDoctor,
+    current_user: ClinicalWriter,
     db: DatabaseSession,
 ):
     if db.get(Patient, case_data.patient_id) is None:
@@ -101,6 +106,8 @@ def create_case(
     db.add(case)
 
     try:
+        db.flush()
+        record_event(db, "case.created", current_user.id, case.id)
         db.commit()
         db.refresh(case)
     except IntegrityError as exc:
@@ -119,6 +126,8 @@ def list_cases(
     db: DatabaseSession,
 ):
     statement = select(Case).order_by(Case.id.desc())
+    record_event(db, "case.list_read", current_user.id)
+    db.commit()
     return db.scalars(statement).all()
 
 
@@ -134,6 +143,8 @@ def get_case(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Case not found",
         )
+    record_event(db, "case.read", current_user.id, case.id)
+    db.commit()
     return case
 
 
@@ -143,7 +154,7 @@ def get_case(
 )
 def upload_case_image(
     case_id: int,
-    current_user: AdminOrDoctor,
+    current_user: ClinicalWriter,
     db: DatabaseSession,
     file: Annotated[UploadFile, File(...)],
 ):
@@ -213,6 +224,7 @@ def upload_case_image(
         case.image_path = str(saved_path)
 
         try:
+            record_event(db, "case.image_uploaded", current_user.id, case.id)
             db.commit()
             db.refresh(case)
         except Exception:
@@ -233,7 +245,7 @@ def upload_case_image(
         file.file.close()
 
 
-@router.get("/{case_id}/image/metadata")
+@router.get("/{case_id}/image/metadata", response_model=ImageMetadata)
 def get_case_image_metadata(
     case_id: int,
     current_user: AuthenticatedCaseReader,
@@ -277,15 +289,16 @@ def get_case_image_metadata(
             with tifffile.TiffFile(image_path) as image_file:
                 page = image_file.pages[0]
                 width, height = page.imagewidth, page.imagelength
-                channels = len(page.shape) if len(page.shape) > 2 else 1
+                channels = page.samplesperpixel
                 pixel_dtype = str(page.dtype)
         else:
             with Image.open(image_path) as image:
                 width, height = image.size
                 channels = len(image.getbands())
-                pixel_dtype = str(cv2.imread(
-                    str(image_path), cv2.IMREAD_UNCHANGED
-                ).dtype)
+                pixels = cv2.imread(str(image_path), cv2.IMREAD_UNCHANGED)
+                if pixels is None:
+                    raise ValueError("Image could not be decoded")
+                pixel_dtype = str(pixels.dtype)
 
     except (OSError, ValueError, tifffile.TiffFileError) as exc:
         raise HTTPException(
@@ -293,6 +306,8 @@ def get_case_image_metadata(
             detail="Stored image could not be inspected",
         ) from exc
 
+    record_event(db, "case.image_metadata_read", current_user.id, case.id)
+    db.commit()
     return {
         "case_id": case.id,
         "case_code": case.case_code,

@@ -7,6 +7,8 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.core.dependencies import require_roles
+from app.core.roles import CLINICAL_WRITERS
+from app.services.audit import record_event
 from app.database.session import get_db
 from app.models import Patient, User
 from app.schemas.patient import PatientCreate, PatientResponse
@@ -20,7 +22,7 @@ router = APIRouter(
 
 CurrentUser = Annotated[
     User,
-    Depends(require_roles("admin", "doctor")),
+    Depends(require_roles(*CLINICAL_WRITERS)),
 ]
 
 DatabaseSession = Annotated[
@@ -55,6 +57,8 @@ def create_patient(
     db.add(patient)
 
     try:
+        db.flush()
+        record_event(db, "patient.created", current_user.id, patient.id)
         db.commit()
         db.refresh(patient)
     except IntegrityError:
@@ -76,5 +80,7 @@ def list_patients(
     db: DatabaseSession,
 ):
     statement = select(Patient).order_by(Patient.id.desc())
+    record_event(db, "patient.list_read", current_user.id)
+    db.commit()
 
     return db.scalars(statement).all()

@@ -1,11 +1,10 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { DEMO_USERS } from '../api/auth';
-import { Eye, EyeOff, AlertCircle, ShieldAlert } from 'lucide-react';
+import { Eye, EyeOff, AlertCircle } from 'lucide-react';
 
 export default function Login() {
-  const { login }    = useAuth();
+  const { login, sessionError }    = useAuth();
   const navigate     = useNavigate();
   const [form, setForm] = useState({ email: '', password: '' });
   const [showPw, setShowPw] = useState(false);
@@ -105,88 +104,15 @@ export default function Login() {
             <p style={{ color: '#64748b', fontSize: 14, margin: 0 }}>Enter your research credentials to continue.</p>
           </div>
 
-          {/* Quick Demo Credentials */}
-          <div style={{
-            background: '#ffffff',
-            border: '1px solid #e2e8f0',
-            borderRadius: 14,
-            padding: '14px 16px',
-            marginBottom: 20,
-            boxShadow: '0 2px 8px rgba(0,0,0,0.03)',
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-              <span style={{ fontSize: 11, fontWeight: 700, color: '#475569', letterSpacing: '0.5px', textTransform: 'uppercase' }}>
-                ⚡ Quick Demo Accounts
-              </span>
-              <span style={{ fontSize: 11, color: '#94a3b8' }}>Click to auto-fill</span>
-            </div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
-              <button
-                type="button"
-                id="demo-admin-btn"
-                onClick={() => setForm({ email: 'admin@research.med', password: 'adminpassword123' })}
-                style={{
-                  padding: '8px 6px',
-                  borderRadius: 8,
-                  border: form.email === 'admin@research.med' ? '1.5px solid #dc2626' : '1px solid #fee2e2',
-                  background: form.email === 'admin@research.med' ? '#fef2f2' : '#fff5f5',
-                  color: '#991b1b',
-                  fontSize: 11.5,
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                  textAlign: 'center',
-                }}
-              >
-                👑 Admin
-              </button>
-              <button
-                type="button"
-                id="demo-clinician-btn"
-                onClick={() => setForm({ email: 'aisha.patel@research.med', password: 'clinicianpassword123' })}
-                style={{
-                  padding: '8px 6px',
-                  borderRadius: 8,
-                  border: form.email === 'aisha.patel@research.med' ? '1.5px solid #2563eb' : '1px solid #dbeafe',
-                  background: form.email === 'aisha.patel@research.med' ? '#eff6ff' : '#f0f7ff',
-                  color: '#1e40af',
-                  fontSize: 11.5,
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                  textAlign: 'center',
-                }}
-              >
-                🩺 Clinician
-              </button>
-              <button
-                type="button"
-                id="demo-scientist-btn"
-                onClick={() => setForm({ email: 'liu.wei@research.med', password: 'scientistpassword123' })}
-                style={{
-                  padding: '8px 6px',
-                  borderRadius: 8,
-                  border: form.email === 'liu.wei@research.med' ? '1.5px solid #7c3aed' : '1px solid #ede9fe',
-                  background: form.email === 'liu.wei@research.med' ? '#f5f3ff' : '#faf5ff',
-                  color: '#6d28d9',
-                  fontSize: 11.5,
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                  textAlign: 'center',
-                }}
-              >
-                🔬 Scientist
-              </button>
-            </div>
-          </div>
-
           <form id="login-form" onSubmit={submit}>
-            {error && (
+            {(error || sessionError) && (
               <div style={{
                 display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px',
                 background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 10,
                 color: '#dc2626', fontSize: 13, marginBottom: 18,
               }}>
                 <AlertCircle size={16} />
-                {error}
+                {error || sessionError}
               </div>
             )}
 
@@ -238,7 +164,7 @@ export default function Login() {
           </p>
 
           <p style={{ textAlign: 'center', color: '#94a3b8', fontSize: 11.5, marginTop: 20 }}>
-            ⓘ Use only authorised research accounts. All activity is logged.
+            ⓘ Use only authorised research accounts. Authentication and case access are logged.
           </p>
         </div>
 
