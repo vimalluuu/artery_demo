@@ -398,6 +398,13 @@ export default function CaseDetail() {
               { label: 'DB Case ID',   value: <code style={{ fontFamily: 'monospace', color: '#1d4ed8' }}>#{caseData.id}</code> },
               { label: 'Case Code',    value: caseData.caseCode },
               { label: 'Study Type',   value: caseData.studyType },
+              { label: 'Modality',     value: caseData.modality  || '—' },
+              { label: 'Region',       value: caseData.region    || '—' },
+              { label: 'Scan Date',    value: caseData.scanDate  || '—' },
+              { label: 'Age at Scan',  value: caseData.age != null ? `${caseData.age} yr` : '—' },
+              { label: 'Sex',          value: caseData.gender
+                ? ({ M: 'Male', F: 'Female', O: 'Other/NS' }[caseData.gender] ?? caseData.gender)
+                : '—' },
               { label: 'Patient ID',   value: `Patient #${caseData.patientId}` },
               { label: 'Created',      value: new Date(caseData.createdAt).toLocaleString() },
               { label: 'Status',       value: <StatusBadge status={caseData.status} /> },
@@ -409,10 +416,17 @@ export default function CaseDetail() {
               </div>
             ))}
 
+            {/* Notes */}
+            {caseData.notes && (
+              <div style={{ marginTop: 8, padding: '8px 10px', background: '#f8fafc', borderRadius: 8, fontSize: 12.5, color: '#475569', lineHeight: 1.5 }}>
+                <div style={{ fontSize: 11, color: '#94a3b8', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 4 }}>Notes</div>
+                {caseData.notes}
+              </div>
+            )}
             {/* Unsupported fields notice */}
             <div style={{ marginTop: 8, padding: '10px 12px', background: '#f8fafc', borderRadius: 8, fontSize: 12, color: '#94a3b8' }}>
-              <strong>Not yet in backend:</strong><br />
-              Modality, region, scan date, severity, confidence, demographics, risk factors, and notes
+              <strong>Still not in backend:</strong><br />
+              Severity, confidence, analysis history, risk factors, and createdBy
               are not stored by the current backend schema.
             </div>
           </div>

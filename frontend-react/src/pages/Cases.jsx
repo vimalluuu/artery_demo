@@ -102,7 +102,7 @@ export default function Cases() {
           fontSize: 12.5, color: '#6b7280', marginBottom: 16,
         }}>
           <Info size={13} style={{ flexShrink: 0, marginTop: 1 }} />
-          <span>Modality, region, scan date, severity, and confidence are not yet stored by the backend. Columns show real persisted data only.</span>
+          <span>Severity and confidence are not yet stored by the backend (no inference pipeline). All other case fields are real persisted data.</span>
         </div>
       )}
 
