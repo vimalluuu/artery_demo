@@ -22,9 +22,21 @@ from app.core.config import settings
 from app.core.dependencies import require_roles
 from app.core.roles import CASE_READERS, CLINICAL_WRITERS
 from app.services.audit import record_event
+from app.services.volume_ingestion import (
+    MAX_COMPRESSED_BYTES,
+    VolumeIngestionError,
+    validate_nifti_extension,
+    validate_nifti_file,
+)
 from app.database.session import get_db
-from app.models import Case, Patient, User
-from app.schemas.case import CaseCreate, CaseResponse, CaseUpdate, ImageMetadata
+from app.models import Case, Patient, User, VolumeMetadata
+from app.schemas.case import (
+    CaseCreate,
+    CaseResponse,
+    CaseUpdate,
+    ImageMetadata,
+    VolumeMetadataResponse,
+)
 
 
 router = APIRouter(prefix="/cases", tags=["Cases"])
@@ -35,6 +47,15 @@ ALLOWED_EXTENSIONS = {".png", ".jpg", ".jpeg", ".tif", ".tiff"}
 
 UPLOAD_DIR = Path(settings.UPLOAD_DIR).resolve()
 UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
+
+# Sub-directory for NIfTI volumes
+VOLUME_DIR = UPLOAD_DIR / "volumes"
+VOLUME_DIR.mkdir(parents=True, exist_ok=True)
+
+# Per-upload byte limits for volumes (sourced from settings for testability)
+MAX_VOLUME_COMPRESSED        = settings.MAX_VOLUME_COMPRESSED_MB        * 1024 * 1024
+MAX_VOLUME_UNCOMPRESSED_FILE = settings.MAX_VOLUME_UNCOMPRESSED_FILE_MB * 1024 * 1024
+MAX_VOLUME_UNCOMPRESSED      = settings.MAX_VOLUME_UNCOMPRESSED_MB      * 1024 * 1024
 
 DatabaseSession = Annotated[Session, Depends(get_db)]
 
@@ -359,3 +380,246 @@ def get_case_image_metadata(
         "pixel_dtype": pixel_dtype,
         "file_size_bytes": image_path.stat().st_size,
     }
+
+
+# ─── Volume upload ────────────────────────────────────────────────────────────
+
+@router.post(
+    "/{case_id}/volume",
+    response_model=CaseResponse,
+)
+def upload_case_volume(
+    case_id: int,
+    current_user: ClinicalWriter,
+    db: DatabaseSession,
+    file: Annotated[UploadFile, File(...)],
+) -> CaseResponse:
+    """Upload a NIfTI volume (.nii or .nii.gz) for a case.
+
+    Accepted formats: NIfTI-1 and NIfTI-2 in uncompressed (.nii) or
+    gzip-compressed (.nii.gz) form.  3D and 4D volumes are accepted;
+    voxel data is never loaded.
+
+    Size limits:
+      - Uncompressed .nii: settings.MAX_VOLUME_UNCOMPRESSED_FILE_MB (default 2000 MB)
+      - Compressed .nii.gz: settings.MAX_VOLUME_COMPRESSED_MB (default 512 MB) upload
+        stream limit PLUS bounded decompression up to settings.MAX_VOLUME_UNCOMPRESSED_MB
+        (default 2000 MB).
+
+    RBAC: Clinician / Admin only.
+    """
+    case = db.get(Case, case_id)
+    if case is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Case not found",
+        )
+
+    # ── Extension check (filename only; content verified later) ───────────────
+    try:
+        extension = validate_nifti_extension(file.filename or "")
+    except VolumeIngestionError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
+            detail=str(exc),
+        ) from exc
+
+    if extension == ".nii.gz":
+        upload_limit = MAX_VOLUME_COMPRESSED
+        limit_mb = settings.MAX_VOLUME_COMPRESSED_MB
+        kind = "compressed (.nii.gz)"
+    else:
+        upload_limit = MAX_VOLUME_UNCOMPRESSED_FILE
+        limit_mb = settings.MAX_VOLUME_UNCOMPRESSED_FILE_MB
+        kind = "uncompressed (.nii)"
+
+    # ── Stream to a temp file inside VOLUME_DIR ───────────────────────────────
+    temporary_path = VOLUME_DIR / f".{uuid4().hex}.upload{extension}"
+    saved_path: Path | None = None
+
+    try:
+        total_size = 0
+        with temporary_path.open("xb") as dest:
+            while True:
+                chunk = file.file.read(1024 * 1024)   # 1 MiB chunks
+                if not chunk:
+                    break
+                total_size += len(chunk)
+                if total_size > upload_limit:
+                    raise HTTPException(
+                        status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+                        detail=(
+                            f"Volume upload exceeds the {limit_mb} MB limit "
+                            f"for {kind} volumes."
+                        ),
+                    )
+                dest.write(chunk)
+
+        if total_size == 0:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Uploaded file is empty.",
+            )
+
+        # ── NIfTI header validation (no voxel data loaded) ────────────────────
+        try:
+            props = validate_nifti_file(
+                temporary_path,
+                extension,
+                max_uncompressed_bytes=MAX_VOLUME_UNCOMPRESSED,
+            )
+        except VolumeIngestionError as exc:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=str(exc),
+            ) from exc
+
+        # ── Atomic rename to a UUID-based filename inside VOLUME_DIR ──────────
+        stored_name = f"{uuid4().hex}{extension}"
+        saved_path = VOLUME_DIR / stored_name
+        temporary_path.replace(saved_path)
+
+        # Relative path stored in DB (relative to UPLOAD_DIR, not absolute)
+        relative_volume_path = str(
+            saved_path.relative_to(UPLOAD_DIR)
+        ).replace("\\", "/")   # normalise separators on Windows
+
+        previous_volume_path = case.volume_path
+        case.volume_path = relative_volume_path
+
+        # ── Upsert VolumeMetadata row ─────────────────────────────────────────
+        existing_meta = db.scalar(
+            select(VolumeMetadata).where(VolumeMetadata.case_id == case_id)
+        )
+        affine = props.affine_flat  # 16 floats
+        meta_kwargs = dict(
+            case_id=case_id,
+            dim_x=props.shape[0],
+            dim_y=props.shape[1],
+            dim_z=props.shape[2],
+            dim_t=props.shape[3] if props.ndim == 4 else None,
+            voxel_spacing_x=props.voxel_spacing_x,
+            voxel_spacing_y=props.voxel_spacing_y,
+            voxel_spacing_z=props.voxel_spacing_z,
+            aff_00=affine[0],  aff_01=affine[1],  aff_02=affine[2],  aff_03=affine[3],
+            aff_10=affine[4],  aff_11=affine[5],  aff_12=affine[6],  aff_13=affine[7],
+            aff_20=affine[8],  aff_21=affine[9],  aff_22=affine[10], aff_23=affine[11],
+            aff_30=affine[12], aff_31=affine[13], aff_32=affine[14], aff_33=affine[15],
+            voxel_dtype=props.voxel_dtype,
+            nifti_version=props.nifti_version,
+            qform_code=props.qform_code,
+            sform_code=props.sform_code,
+            xyzt_units=props.xyzt_units,
+            file_size_bytes=props.file_size_bytes,
+            uploader_id=current_user.id,
+        )
+
+        if existing_meta is None:
+            db.add(VolumeMetadata(**meta_kwargs))
+        else:
+            for key, val in meta_kwargs.items():
+                setattr(existing_meta, key, val)
+
+        try:
+            record_event(db, "case.volume_uploaded", current_user.id, case.id)
+            db.commit()
+            db.refresh(case)
+        except Exception:
+            db.rollback()
+            saved_path.unlink(missing_ok=True)
+            saved_path = None
+            raise
+
+        # ── Delete the previous volume file only after commit succeeds ─────────
+        if previous_volume_path:
+            old_abs = (UPLOAD_DIR / previous_volume_path).resolve()
+            if (
+                old_abs != saved_path
+                and old_abs.is_relative_to(VOLUME_DIR)
+            ):
+                old_abs.unlink(missing_ok=True)
+
+        return case
+
+    finally:
+        temporary_path.unlink(missing_ok=True)
+        file.file.close()
+
+
+@router.get(
+    "/{case_id}/volume/metadata",
+    response_model=VolumeMetadataResponse,
+)
+def get_case_volume_metadata(
+    case_id: int,
+    current_user: AuthenticatedCaseReader,
+    db: DatabaseSession,
+) -> VolumeMetadataResponse:
+    """Return the stored spatial metadata for a case's uploaded NIfTI volume.
+
+    Does not return the volume file itself, voxel data, or any PHI.
+    RBAC: all authenticated roles.
+    """
+    case = db.get(Case, case_id)
+    if case is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Case not found",
+        )
+
+    if not case.volume_path:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="No volume has been uploaded for this case.",
+        )
+
+    # Safety: resolve stored relative path under VOLUME_DIR
+    resolved = (UPLOAD_DIR / case.volume_path).resolve()
+    if not resolved.is_relative_to(VOLUME_DIR):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Stored volume path is invalid.",
+        )
+
+    if not resolved.is_file():
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Volume file is missing from storage.",
+        )
+
+    meta = db.scalar(
+        select(VolumeMetadata).where(VolumeMetadata.case_id == case_id)
+    )
+    if meta is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Volume metadata record not found.",
+        )
+
+    record_event(db, "case.volume_metadata_read", current_user.id, case.id)
+    db.commit()
+
+    return VolumeMetadataResponse(
+        case_id=case_id,
+        ndim=3 if meta.dim_t is None else 4,
+        shape_x=meta.dim_x,
+        shape_y=meta.dim_y,
+        shape_z=meta.dim_z,
+        shape_t=meta.dim_t,
+        voxel_spacing_x=meta.voxel_spacing_x,
+        voxel_spacing_y=meta.voxel_spacing_y,
+        voxel_spacing_z=meta.voxel_spacing_z,
+        affine=[
+            meta.aff_00, meta.aff_01, meta.aff_02, meta.aff_03,
+            meta.aff_10, meta.aff_11, meta.aff_12, meta.aff_13,
+            meta.aff_20, meta.aff_21, meta.aff_22, meta.aff_23,
+            meta.aff_30, meta.aff_31, meta.aff_32, meta.aff_33,
+        ],
+        voxel_dtype=meta.voxel_dtype,
+        nifti_version=meta.nifti_version,
+        qform_code=meta.qform_code,
+        sform_code=meta.sform_code,
+        xyzt_units=meta.xyzt_units,
+        file_size_bytes=meta.file_size_bytes,
+        uploaded_at=meta.uploaded_at,
+    )

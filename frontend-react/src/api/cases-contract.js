@@ -3,57 +3,53 @@
  *
  * Adapter between the real backend CaseAPI and the React UI.
  *
- * Backend CaseResponse (after migration 0003_case_meta):
- *   { id: int, patient_id: int, case_code: str, study_type: str,
- *     status: str, image_path: str|null, created_at: datetime,
- *     modality: str|null, region: str|null, scan_date: str|null,
- *     age_years: int|null, sex: str|null, notes: str|null }
+ * Backend CaseResponse (after migration 0004_volume_ingestion):
+ *   { id, patient_id, case_code, study_type, status,
+ *     image_path, volume_path, created_at,
+ *     modality, region, scan_date, age_years, sex, notes }
  *
- * UI case shape (what pages receive):
- *   { id, patientId, caseCode, studyType, status, hasImage, createdAt,
+ * UI case shape:
+ *   { id, patientId, caseCode, studyType, status,
+ *     hasImage, hasVolume, volumePath, createdAt,
  *     modality, region, scanDate, age, gender, notes,
- *     // still not in backend — always null/[]:
- *     severity: null, confidence: null, createdBy: null, riskFactors: [], analyses: [] }
+ *     severity: null, confidence: null, createdBy: null,
+ *     riskFactors: [], analyses: [] }
  *
  * ─── FIELD MAPPING TABLE ────────────────────────────────────────────────────
- * Backend field   UI field        Notes
- * id (int DB PK)  id              Numeric; used in route /cases/:id
- * case_code (str) caseCode        Human-readable label, e.g. "CASE-2026-001"
- *                                 NOT the same as the DB primary key id
- * patient_id      patientId       FK to patients table
- * study_type      studyType       Free-text; "Coronary Artery Analysis" etc.
- * status          status          Backend stores lowercase: 'pending'|'processing'|'complete'|'failed'
- *                                 Adapter title-cases to: 'Pending'|'Processing'|'Complete'|'Failed'
- *                                 UI StatusBadge components require title-case
- * image_path      hasImage        boolean (path is server-internal, not exposed)
- * created_at      createdAt       ISO datetime string
- * modality        modality        Now persisted: "CT Angiography"|"MRA"|"CTA"|"DSA"|"Ultrasound"|"Other"|null
- * region          region          Now persisted: "Coronary"|"Carotid"|"Renal"|"Peripheral"|"Cerebral"|"Aorta"|"Other"|null
- * scan_date       scanDate        Date string "YYYY-MM-DD" or null (backend returns Date, not datetime)
- * age_years       age             Integer 0-120 or null
- * sex             gender          "M"|"F"|"O" or null  (UI historically named this 'gender')
- * notes           notes           Free-text string or null
+ * Backend field    UI field         Notes
+ * id (int DB PK)   id               Numeric; used in route /cases/:id
+ * case_code (str)  caseCode         Human-readable label
+ * patient_id       patientId        FK to patients table
+ * study_type       studyType        Free-text
+ * status           status           Backend lowercase → adapter title-cases
+ * image_path       hasImage         boolean (path is server-internal)
+ * volume_path      volumePath/      Relative path (server-internal); bool
+ *                  hasVolume        derived from volume_path != null
+ * created_at       createdAt        ISO datetime string
+ * modality         modality         Persisted since migration 0003
+ * region           region           Persisted since migration 0003
+ * scan_date        scanDate         Date string "YYYY-MM-DD" or null
+ * age_years        age              Integer 0-120 or null
+ * sex              gender           "M"|"F"|"O" or null
+ * notes            notes            Free-text string or null
  *
- * Unsupported fields (absent from backend — reported honestly as null/[]):
+ * Unsupported fields (absent from backend):
  *   severity, confidence, createdBy, riskFactors, analyses
  * ────────────────────────────────────────────────────────────────────────────
  *
  * Endpoints:
- *   POST  /api/v1/cases           { patient_id, case_code, study_type, modality?,
- *                                   region?, scan_date?, age_years?, sex?, notes? }
- *                                   → 201 CaseResponse                [Clinician, Admin]
- *   GET   /api/v1/cases           []CaseResponse                      [all roles]
- *   GET   /api/v1/cases/:id       CaseResponse                        [all roles]
- *   PATCH /api/v1/cases/:id       { study_type?, modality?, region?,
- *                                   scan_date?, age_years?, sex?, notes? }
- *                                   → CaseResponse (partial update)   [Clinician, Admin]
- *   POST  /api/v1/cases/:id/image multipart FormData { file }
- *                                   → CaseResponse                    [Clinician, Admin]
- *   GET   /api/v1/cases/:id/image/metadata  ImageMetadata             [all roles]
+ *   POST  /api/v1/cases                   → 201 CaseResponse  [Clinician, Admin]
+ *   GET   /api/v1/cases                   []CaseResponse      [all roles]
+ *   GET   /api/v1/cases/:id              CaseResponse         [all roles]
+ *   PATCH /api/v1/cases/:id              CaseResponse         [Clinician, Admin]
+ *   POST  /api/v1/cases/:id/image        CaseResponse         [Clinician, Admin]
+ *   GET   /api/v1/cases/:id/image/metadata  ImageMetadata     [all roles]
+ *   POST  /api/v1/cases/:id/volume       CaseResponse         [Clinician, Admin]
+ *   GET   /api/v1/cases/:id/volume/metadata  VolumeMetadata   [all roles]
  *
- * RBAC summary (backend enforces; frontend only presents correct affordances):
- *   Clinician, Admin  → list, get, create, update, upload
- *   Researcher, DataScientist → list, get ONLY
+ * RBAC summary (backend enforces; frontend only shows correct affordances):
+ *   Clinician, Admin  → list, get, create, update, image upload, volume upload
+ *   Researcher, DataScientist → list, get, metadata reads ONLY
  */
 
 /**
@@ -75,20 +71,23 @@ const STATUS_MAP = {
 export function toCase(raw) {
   return {
     // ── Supported fields ──────────────────────────────────────────────────
-    id:        raw.id,          // int DB PK — used in /cases/:id URL
-    patientId: raw.patient_id,
-    caseCode:  raw.case_code,   // human label, distinct from id
-    studyType: raw.study_type,
-    status:    STATUS_MAP[raw.status] ?? raw.status,
-    hasImage:  raw.image_path != null,
-    createdAt: raw.created_at,
-    // ── Metadata fields (now persisted — null for pre-migration cases) ─────
-    modality:  raw.modality  ?? null,
-    region:    raw.region    ?? null,
-    scanDate:  raw.scan_date ?? null,   // "YYYY-MM-DD" or null
-    age:       raw.age_years ?? null,   // UI uses 'age', backend uses 'age_years'
-    gender:    raw.sex       ?? null,   // UI uses 'gender', backend uses 'sex'
-    notes:     raw.notes     ?? null,
+    id:         raw.id,
+    patientId:  raw.patient_id,
+    caseCode:   raw.case_code,
+    studyType:  raw.study_type,
+    status:     STATUS_MAP[raw.status] ?? raw.status,
+    hasImage:   raw.image_path != null,
+    // ── Volume fields (added in migration 0004_volume_ingestion) ──────────
+    hasVolume:  raw.volume_path != null,
+    volumePath: raw.volume_path ?? null,  // server-internal relative path
+    createdAt:  raw.created_at,
+    // ── Metadata fields (persisted since migration 0003_case_meta) ────────
+    modality:   raw.modality   ?? null,
+    region:     raw.region     ?? null,
+    scanDate:   raw.scan_date  ?? null,
+    age:        raw.age_years  ?? null,
+    gender:     raw.sex        ?? null,
+    notes:      raw.notes      ?? null,
     // ── Still unsupported (backend does not provide these yet) ────────────
     severity:   null,
     confidence: null,
@@ -197,7 +196,7 @@ export function createCasesApi(api) {
     },
 
     /**
-     * Retrieve image metadata for a case that has an uploaded image.
+     * Retrieve image metadata for a case that has an uploaded 2D image.
      * Returns the raw ImageMetadata object (case_id, case_code, filename,
      * format, width, height, channels, pixel_dtype, file_size_bytes).
      * Returns null if the case has no image yet.
@@ -210,6 +209,38 @@ export function createCasesApi(api) {
         if (err.response?.status === 404) return null;
         throw err;
       }
+    },
+
+    /**
+     * Retrieve volume metadata for a case that has an uploaded NIfTI volume.
+     * Returns the VolumeMetadata object or null if the case has no volume.
+     */
+    async getVolumeMetadata(caseId) {
+      try {
+        const { data } = await api.get(`/cases/${caseId}/volume/metadata`);
+        return data;
+      } catch (err) {
+        if (err.response?.status === 404) return null;
+        throw err;
+      }
+    },
+
+    /**
+     * Upload a NIfTI volume file for a case. Requires Clinician or Admin.
+     * formData must be a FormData object with key "file".
+     * Accepted extensions: .nii, .nii.gz
+     * Returns the updated CaseResponse (with has_volume=true).
+     */
+    async uploadVolume(caseId, formData, onProgress) {
+      const { data } = await api.post(`/cases/${caseId}/volume`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+        onUploadProgress: (evt) => {
+          if (onProgress && evt.total) {
+            onProgress(Math.round((evt.loaded * 100) / evt.total));
+          }
+        },
+      });
+      return toCase(data);
     },
   };
 }

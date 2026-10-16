@@ -52,6 +52,17 @@ class Settings(BaseSettings):
     UPLOAD_DIR: str = "./uploads"
     OUTPUT_DIR: str = "./outputs"
 
+    # ── Volume ingestion limits (configurable via .env) ───────────────────────
+    # Maximum *compressed* file size accepted for .nii.gz uploads (upload payload).
+    MAX_VOLUME_COMPRESSED_MB: int = Field(default=512, ge=1, le=4096)
+    # Maximum file size accepted for uncompressed .nii uploads (upload payload).
+    MAX_VOLUME_UNCOMPRESSED_FILE_MB: int = Field(default=2000, ge=1, le=16384)
+    # Maximum *decompressed* byte count allowed when expanding a .nii.gz upload.
+    # Defence against gzip bombs — enforced by bounded streaming decompression.
+    MAX_VOLUME_UNCOMPRESSED_MB: int = Field(default=2000, ge=1, le=16384)
+    # Maximum spatial voxel count (X * Y * Z) for any uploaded volume.
+    MAX_VOLUME_VOXELS: int = Field(default=134_217_728, ge=1)  # 512^3
+
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",

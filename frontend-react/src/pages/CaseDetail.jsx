@@ -39,17 +39,25 @@ export default function CaseDetail() {
   const { user }     = useAuth();
   const fileRef      = useRef();
 
-  const [caseData, setCaseData]     = useState(null);
-  const [imageMeta, setImageMeta]   = useState(null);
-  const [metaLoading, setMetaLoading] = useState(false);
-  const [loading, setLoading]       = useState(true);
-  const [loadError, setLoadError]   = useState('');
-  const [uploading, setUploading]   = useState(false);
-  const [uploadPct, setUploadPct]   = useState(0);
-  const [dragOver, setDragOver]     = useState(false);
-  const [file, setFile]             = useState(null);
-  const [uploadError, setUploadError] = useState('');
-  const [toast, setToast]           = useState(null);
+  const [caseData, setCaseData]         = useState(null);
+  const [imageMeta, setImageMeta]       = useState(null);
+  const [metaLoading, setMetaLoading]   = useState(false);
+  const [loading, setLoading]           = useState(true);
+  const [loadError, setLoadError]       = useState('');
+  const [uploading, setUploading]       = useState(false);
+  const [uploadPct, setUploadPct]       = useState(0);
+  const [dragOver, setDragOver]         = useState(false);
+  const [file, setFile]                 = useState(null);
+  const [uploadError, setUploadError]   = useState('');
+  const [toast, setToast]               = useState(null);
+  // ── Volume upload state ────────────────────────────────────────────────────
+  const volumeFileRef                   = useRef();
+  const [volumeFile, setVolumeFile]     = useState(null);
+  const [volumeUploading, setVolumeUploading] = useState(false);
+  const [volumeUploadPct, setVolumeUploadPct] = useState(0);
+  const [volumeUploadError, setVolumeUploadError] = useState('');
+  const [volumeMeta, setVolumeMeta]     = useState(null);
+  const [volumeMetaLoading, setVolumeMetaLoading] = useState(false);
 
   const canWrite = user && (user.role === 'Clinician' || user.role === 'Admin');
 
@@ -78,6 +86,15 @@ export default function CaseDetail() {
       .then((meta) => { setImageMeta(meta); setMetaLoading(false); })
       .catch(() => setMetaLoading(false));
   }, [caseData?.hasImage, id]);
+
+  // ── Load volume metadata when case has a volume ────────────────────────────
+  useEffect(() => {
+    if (!caseData?.hasVolume) return;
+    setVolumeMetaLoading(true);
+    casesApi.getVolumeMetadata(id)
+      .then((meta) => { setVolumeMeta(meta); setVolumeMetaLoading(false); })
+      .catch(() => setVolumeMetaLoading(false));
+  }, [caseData?.hasVolume, id]);
 
   const showToast = (msg, type = 'success') => {
     setToast({ msg, type });
@@ -125,6 +142,44 @@ export default function CaseDetail() {
       }
     } finally {
       setUploading(false);
+    }
+  };
+
+  // ── Volume upload handler ──────────────────────────────────────────────────
+  const handleVolumeUpload = async () => {
+    if (!volumeFile) return;
+    setVolumeUploading(true); setVolumeUploadPct(0); setVolumeUploadError('');
+    try {
+      const fd = new FormData();
+      fd.append('file', volumeFile);
+      const updated = await casesApi.uploadVolume(id, fd, (pct) => setVolumeUploadPct(pct));
+      setVolumeUploadPct(100);
+      setCaseData(updated);
+      setVolumeFile(null);
+      showToast('Volume uploaded successfully!');
+      // Refresh volume metadata
+      setVolumeMetaLoading(true);
+      casesApi.getVolumeMetadata(id)
+        .then((meta) => { setVolumeMeta(meta); setVolumeMetaLoading(false); })
+        .catch(() => setVolumeMetaLoading(false));
+    } catch (err) {
+      setVolumeUploadPct(0);
+      const st = err.response?.status;
+      if (st === 403) {
+        setVolumeUploadError('You do not have permission to upload volumes. Clinician or Admin required.');
+      } else if (st === 415) {
+        setVolumeUploadError('Unsupported format. Upload a NIfTI file (.nii or .nii.gz).');
+      } else if (st === 413) {
+        const detail = err.response?.data?.detail || 'Volume file exceeds the configured upload limit.';
+        setVolumeUploadError(detail);
+      } else if (st === 400) {
+        const detail = err.response?.data?.detail || err.message || 'Invalid NIfTI file.';
+        setVolumeUploadError(detail);
+      } else {
+        setVolumeUploadError(err.message || 'Volume upload failed — please try again.');
+      }
+    } finally {
+      setVolumeUploading(false);
     }
   };
 
@@ -206,6 +261,11 @@ export default function CaseDetail() {
             {caseData.hasImage && (
               <span className="badge badge-gray" style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
                 <ImageIcon size={11} /> Image uploaded
+              </span>
+            )}
+            {caseData.hasVolume && (
+              <span className="badge badge-gray" style={{ display: 'inline-flex', alignItems: 'center', gap: 5, background: '#ede9fe', color: '#5b21b6' }}>
+                <Upload size={11} /> Volume uploaded
               </span>
             )}
           </div>
@@ -360,6 +420,134 @@ export default function CaseDetail() {
                   </div>
                 ) : (
                   <div style={{ color: '#94a3b8', fontSize: 13 }}>Image metadata unavailable.</div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* ── Volume Upload card ────────────────────────────────────────────── */}
+          <div className="card">
+            <div className="card-header">
+              <h2 className="card-title">
+                <Upload size={17} style={{ display: 'inline', marginRight: 8, verticalAlign: 'middle', color: '#7c3aed' }} />
+                Volume Upload
+                <span style={{ marginLeft: 10, fontSize: 11, color: '#94a3b8', fontWeight: 400 }}>NIfTI · upload &amp; metadata only — no inference</span>
+              </h2>
+            </div>
+            <div className="card-body">
+              {!canWrite && (
+                <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start', padding: '10px 14px', background: '#fef9c3', border: '1px solid #fde68a', borderRadius: 10, fontSize: 13, color: '#92400e', marginBottom: 16 }}>
+                  <Info size={14} style={{ flexShrink: 0, marginTop: 1 }} />
+                  Volume upload requires Clinician or Admin role.
+                </div>
+              )}
+              <div
+                id="volume-dropzone"
+                style={{
+                  border: '2px dashed', borderColor: volumeFile ? '#7c3aed' : '#e2e8f0',
+                  borderRadius: 12, padding: '24px 20px', textAlign: 'center',
+                  cursor: canWrite ? 'pointer' : 'default',
+                  opacity: canWrite ? 1 : 0.6,
+                  background: volumeFile ? '#faf5ff' : '#fafafa',
+                  transition: 'border-color 0.15s',
+                }}
+                onClick={() => canWrite && volumeFileRef.current?.click()}
+                role="button"
+                tabIndex={canWrite ? 0 : -1}
+                aria-label="Upload NIfTI volume file"
+                aria-disabled={!canWrite}
+                onKeyDown={(e) => e.key === 'Enter' && canWrite && volumeFileRef.current?.click()}
+              >
+                <input
+                  ref={volumeFileRef}
+                  type="file"
+                  accept=".nii,.nii.gz"
+                  hidden
+                  disabled={!canWrite}
+                  onChange={(e) => {
+                    const f = e.target.files?.[0];
+                    if (f) { setVolumeFile(f); setVolumeUploadError(''); }
+                  }}
+                />
+                <div style={{ color: '#7c3aed', marginBottom: 8 }}><Upload size={24} /></div>
+                {volumeFile ? (
+                  <div>
+                    <div style={{ fontWeight: 700, color: '#0f172a' }}>{volumeFile.name}</div>
+                    <div style={{ fontSize: 12.5, color: '#64748b' }}>{(volumeFile.size / 1e6).toFixed(1)} MB</div>
+                  </div>
+                ) : (
+                  <div>
+                    <div style={{ fontWeight: 600, color: '#334155', marginBottom: 4 }}>
+                      {canWrite ? 'Drop NIfTI file or click to browse' : 'Upload not permitted for your role'}
+                    </div>
+                    <div style={{ fontSize: 12.5, color: '#64748b' }}>.nii or .nii.gz · Max 512 MB · 3D / 4D volumes</div>
+                  </div>
+                )}
+              </div>
+              {volumeUploadError && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 10, color: '#dc2626', fontSize: 13, marginTop: 12 }}>
+                  <AlertTriangle size={14} />{volumeUploadError}
+                </div>
+              )}
+              {volumeUploading && (
+                <div style={{ marginTop: 16 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: '#64748b', marginBottom: 6 }}>
+                    <span>Uploading volume…</span><span>{volumeUploadPct}%</span>
+                  </div>
+                  <div className="progress-track">
+                    <div className="progress-fill" style={{ width: `${volumeUploadPct}%`, background: '#7c3aed' }} />
+                  </div>
+                </div>
+              )}
+              <button
+                id="volume-upload-btn"
+                className="btn btn-primary"
+                disabled={!volumeFile || volumeUploading || !canWrite}
+                onClick={handleVolumeUpload}
+                style={{ marginTop: 14, background: canWrite && volumeFile ? '#7c3aed' : undefined }}
+              >
+                {volumeUploading
+                  ? <><Loader size={15} style={{ animation: 'spin 1s linear infinite' }} /> Uploading…</>
+                  : <><Upload size={15} /> Upload Volume</>}
+              </button>
+            </div>
+          </div>
+
+          {/* ── Volume metadata panel ─────────────────────────────────────────── */}
+          {caseData.hasVolume && (
+            <div className="card">
+              <div className="card-header">
+                <h2 className="card-title">
+                  <Info size={17} style={{ display: 'inline', marginRight: 8, verticalAlign: 'middle', color: '#7c3aed' }} />
+                  Volume Metadata
+                  <span style={{ marginLeft: 10, fontSize: 11, color: '#94a3b8', fontWeight: 400 }}>NIfTI header · no voxel data</span>
+                </h2>
+              </div>
+              <div className="card-body">
+                {volumeMetaLoading ? (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#64748b', fontSize: 13 }}>
+                    <Loader size={14} style={{ animation: 'spin 1s linear infinite' }} /> Loading…
+                  </div>
+                ) : volumeMeta ? (
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, fontSize: 13 }}>
+                    {[
+                      ['NIfTI version', `NIfTI-${volumeMeta.nifti_version}`],
+                      ['Dimensions',    `${volumeMeta.shape_x} × ${volumeMeta.shape_y} × ${volumeMeta.shape_z}${volumeMeta.shape_t ? ` × ${volumeMeta.shape_t}` : ''}`],
+                      ['Ndim',          volumeMeta.ndim],
+                      ['Voxel size',    `${volumeMeta.voxel_spacing_x.toFixed(2)} × ${volumeMeta.voxel_spacing_y.toFixed(2)} × ${volumeMeta.voxel_spacing_z.toFixed(2)} mm`],
+                      ['Voxel dtype',   volumeMeta.voxel_dtype],
+                      ['qform code',    volumeMeta.qform_code],
+                      ['sform code',    volumeMeta.sform_code],
+                      ['File size',     `${(volumeMeta.file_size_bytes / (1024 * 1024)).toFixed(2)} MB`],
+                    ].map(([label, value]) => (
+                      <div key={label}>
+                        <div style={{ fontSize: 11, color: '#94a3b8', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>{label}</div>
+                        <div style={{ color: '#0f172a', fontWeight: 600 }}>{value}</div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div style={{ color: '#94a3b8', fontSize: 13 }}>Volume metadata unavailable.</div>
                 )}
               </div>
             </div>

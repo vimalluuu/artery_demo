@@ -1,9 +1,13 @@
 from datetime import date, datetime
+from typing import TYPE_CHECKING, Optional
 
 from sqlalchemy import Date, DateTime, ForeignKey, SmallInteger, String, Text, func
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database.session import Base
+
+if TYPE_CHECKING:
+    from app.models.volume_metadata import VolumeMetadata
 
 
 class Case(Base):
@@ -59,3 +63,18 @@ class Case(Base):
 
     # Free-text clinical notes (de-identified)
     notes: Mapped[str | None] = mapped_column(Text(), nullable=True)
+
+    # ── Volume field added in migration 0004_volume_ingestion ─────────────────
+    # Relative path from UPLOAD_DIR to the stored NIfTI volume file.
+    # Null for cases without an uploaded volume.
+    volume_path: Mapped[str | None] = mapped_column(
+        String(500), nullable=True
+    )
+
+    # 1-to-1 relationship with VolumeMetadata
+    volume_metadata: Mapped[Optional["VolumeMetadata"]] = relationship(
+        "VolumeMetadata",
+        back_populates="case",
+        cascade="all, delete-orphan",
+        uselist=False,
+    )
