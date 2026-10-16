@@ -174,25 +174,25 @@ export default function NewCase() {
               {error && (
                 <div style={{
                   display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px',
-                  background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 10,
-                  color: '#dc2626', fontSize: 13, marginBottom: 18,
+                  background: '#fff', border: '1px solid rgba(0,0,0,0.18)', borderRadius: 10,
+                  color: '#000', fontSize: 13, marginBottom: 18,
                 }}>
                   <AlertCircle size={15} />{error}
                 </div>
               )}
 
               {/* ── Patient section ──────────────────────────────────────── */}
-              <p style={{ fontSize: 12, fontWeight: 700, color: '#94a3b8', letterSpacing: '1px', textTransform: 'uppercase', marginBottom: 12 }}>
+              <p style={{ fontSize: 12, fontWeight: 700, color: '#000', letterSpacing: '1px', textTransform: 'uppercase', marginBottom: 12 }}>
                 Patient Record
               </p>
 
               {patientsLoading ? (
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#64748b', fontSize: 13, marginBottom: 16 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#000', fontSize: 13, marginBottom: 16 }}>
                   <Loader size={14} style={{ animation: 'spin 1s linear infinite' }} />
                   Loading patients…
                 </div>
               ) : patientsError ? (
-                <div style={{ color: '#dc2626', fontSize: 13, marginBottom: 16, padding: '10px 14px', background: '#fef2f2', borderRadius: 10 }}>
+                <div style={{ color: '#000', fontSize: 13, marginBottom: 16, padding: '10px 14px', background: '#fff', borderRadius: 10 }}>
                   {patientsError}
                 </div>
               ) : (
@@ -231,9 +231,9 @@ export default function NewCase() {
                       </button>
                     </div>
                   ) : (
-                    <div style={{ padding: '16px', background: '#f8fafc', borderRadius: 12, marginBottom: 16, border: '1px solid #e2e8f0' }}>
+                    <div style={{ padding: '16px', background: '#fff', borderRadius: 12, marginBottom: 16, border: '1px solid rgba(0,0,0,0.18)' }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-                        <span style={{ fontSize: 13, fontWeight: 700, color: '#334155' }}>New patient record</span>
+                        <span style={{ fontSize: 13, fontWeight: 700, color: '#000' }}>New patient record</span>
                         {patients.length > 0 && (
                           <button type="button" className="btn btn-ghost btn-sm"
                             onClick={() => setCreatePatient(false)}>
@@ -271,7 +271,7 @@ export default function NewCase() {
               <div className="divider" />
 
               {/* ── Case details ─────────────────────────────────────────── */}
-              <p style={{ fontSize: 12, fontWeight: 700, color: '#94a3b8', letterSpacing: '1px', textTransform: 'uppercase', marginBottom: 12 }}>
+              <p style={{ fontSize: 12, fontWeight: 700, color: '#000', letterSpacing: '1px', textTransform: 'uppercase', marginBottom: 12 }}>
                 Case Details
               </p>
 
@@ -385,39 +385,39 @@ export default function NewCase() {
                 ['5. Await analysis', 'Model inference is not yet available.'],
               ].map(([step, desc]) => (
                 <div key={step} style={{ marginBottom: 14 }}>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: '#0f172a' }}>{step}</div>
-                  <div style={{ fontSize: 12.5, color: '#64748b' }}>{desc}</div>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: '#000' }}>{step}</div>
+                  <div style={{ fontSize: 12.5, color: '#000' }}>{desc}</div>
                 </div>
               ))}
             </div>
           </div>
 
-          <div className="card" style={{ borderColor: '#e2e8f0' }}>
+          <div className="card" style={{ borderColor: 'rgba(0,0,0,0.18)' }}>
             <div className="card-header" style={{ paddingBottom: 8 }}>
               <h2 className="card-title" style={{ fontSize: 14 }}>
-                <Info size={15} style={{ display: 'inline', marginRight: 6, verticalAlign: 'middle', color: '#2563eb' }} />
+                <Info size={15} style={{ display: 'inline', marginRight: 6, verticalAlign: 'middle', color: '#000' }} />
                 Supported Imaging Formats
               </h2>
             </div>
             <div className="card-body" style={{ display: 'flex', flexDirection: 'column', gap: 12, fontSize: 12.5, paddingTop: 4 }}>
               <div>
-                <div style={{ fontWeight: 700, color: '#0f172a' }}>2D Image Uploads</div>
-                <div style={{ color: '#64748b', marginTop: 2 }}>
+                <div style={{ fontWeight: 700, color: '#000' }}>2D Image Uploads</div>
+                <div style={{ color: '#000', marginTop: 2 }}>
                   {IMAGING_GUIDANCE.twoDimensional.description}
                 </div>
               </div>
 
               <div>
-                <div style={{ fontWeight: 700, color: '#7c3aed' }}>Volumetric Uploads (NIfTI)</div>
-                <div style={{ color: '#64748b', marginTop: 2 }}>
+                <div style={{ fontWeight: 700, color: '#000' }}>Volumetric Uploads (NIfTI)</div>
+                <div style={{ color: '#000', marginTop: 2 }}>
                   {IMAGING_GUIDANCE.volumetric.description}
                 </div>
-                <div style={{ fontSize: 11.5, color: '#64748b', marginTop: 3 }}>
+                <div style={{ fontSize: 11.5, color: '#000', marginTop: 3 }}>
                   {IMAGING_GUIDANCE.volumetric.metadataDisclaimer}
                 </div>
               </div>
 
-              <div style={{ padding: '8px 10px', background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 8, color: '#92400e' }}>
+              <div style={{ padding: '8px 10px', background: '#fff', border: '1px solid #000', borderRadius: 8, color: '#000' }}>
                 <div style={{ fontWeight: 700 }}>DICOM</div>
                 <div style={{ marginTop: 2 }}>
                   {IMAGING_GUIDANCE.unsupported.dicom.status} {IMAGING_GUIDANCE.unsupported.dicom.action}
@@ -427,8 +427,8 @@ export default function NewCase() {
           </div>
 
           {user && (
-            <div className="card" style={{ borderColor: '#bfdbfe', background: '#eff6ff' }}>
-              <div className="card-body" style={{ fontSize: 12.5, color: '#1e40af' }}>
+            <div className="card" style={{ borderColor: 'rgba(0,0,0,0.18)', background: '#fff' }}>
+              <div className="card-body" style={{ fontSize: 12.5, color: '#000' }}>
                 <div style={{ fontWeight: 700, marginBottom: 4 }}>Your role: {user.role}</div>
                 {user.role === 'Clinician' || user.role === 'Admin'
                   ? <div>You can create patients, create cases, and upload 2D scans and NIfTI volumes.</div>

@@ -28,13 +28,13 @@ const METRIC_LABEL = { dice: 'Dice Score', iou: 'IoU', precision: 'Precision', r
 function MetricBar({ value, label }) {
   return (
     <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: '#64748b', marginBottom: 4 }}>
-        <span>{label}</span><span style={{ fontWeight: 700, color: '#0f172a' }}>{(value * 100).toFixed(1)}%</span>
+      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: '#000', marginBottom: 4 }}>
+        <span>{label}</span><span style={{ fontWeight: 700, color: '#000' }}>{(value * 100).toFixed(1)}%</span>
       </div>
       <div className="progress-track">
         <div className="progress-fill" style={{
           width: `${value * 100}%`,
-          background: value > 0.9 ? '#22c55e' : value > 0.85 ? '#3b82f6' : '#f59e0b',
+          background: '#000',
         }} />
       </div>
     </div>
@@ -64,22 +64,22 @@ export default function AdminModels() {
       <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
         {models.map((m) => (
           <div key={m.id} className="card" style={{
-            borderColor: m.status === 'Active' ? '#3b82f6' : 'rgba(226,232,240,0.8)',
+            borderColor: m.status === 'Active' ? '#000' : 'rgba(0,0,0,0.18)',
             borderWidth: m.status === 'Active' ? 2 : 1,
           }}>
             <div className="card-header">
               <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                 <div style={{
                   width: 42, height: 42, borderRadius: 12,
-                  background: m.status === 'Active' ? '#dbeafe' : '#f1f5f9',
+                  background: m.status === 'Active' ? '#000' : '#fff',
                   display: 'grid', placeItems: 'center',
-                  color: m.status === 'Active' ? '#2563eb' : '#94a3b8',
+                  color: m.status === 'Active' ? '#fff' : '#000',
                 }}>
                   <Cpu size={20} />
                 </div>
                 <div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <span style={{ fontWeight: 700, fontSize: 15, color: '#0f172a' }}>{m.name}</span>
+                    <span style={{ fontWeight: 700, fontSize: 15, color: '#000' }}>{m.name}</span>
                     {m.status === 'Active' && (
                       <span className="badge badge-green" style={{ fontSize: 11 }}>
                         <Star size={10} /> Active
@@ -89,7 +89,7 @@ export default function AdminModels() {
                       <span className="badge badge-gray" style={{ fontSize: 11 }}>Archived</span>
                     )}
                   </div>
-                  <div style={{ fontSize: 12, color: '#64748b' }}>
+                  <div style={{ fontSize: 12, color: '#000' }}>
                     v{m.version} · Deployed {m.deployedAt} · Trained on {m.trainedOn}
                   </div>
                 </div>
@@ -107,7 +107,7 @@ export default function AdminModels() {
             </div>
 
             <div className="card-body">
-              <p style={{ fontSize: 13.5, color: '#475569', marginBottom: 20 }}>{m.description}</p>
+              <p style={{ fontSize: 13.5, color: '#000', marginBottom: 20 }}>{m.description}</p>
 
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 14 }}>
                 {Object.entries(METRIC_LABEL).map(([key, label]) => (
@@ -116,7 +116,7 @@ export default function AdminModels() {
               </div>
 
               {m.status === 'Active' && (
-                <div style={{ marginTop: 16, padding: '10px 14px', background: '#eff6ff', borderRadius: 10, fontSize: 12.5, color: '#1d4ed8', display: 'flex', gap: 8, alignItems: 'center' }}>
+                <div style={{ marginTop: 16, padding: '10px 14px', background: '#fff', borderRadius: 10, fontSize: 12.5, color: '#000', display: 'flex', gap: 8, alignItems: 'center' }}>
                   <CheckCircle size={14} />
                   This model is currently serving all live analysis requests.
                 </div>
@@ -132,15 +132,15 @@ export default function AdminModels() {
           <div className="modal" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
               <div>
-                <div style={{ fontSize: 17, fontWeight: 700, color: '#0f172a' }}>Switch active model?</div>
-                <div style={{ fontSize: 13.5, color: '#64748b', marginTop: 6 }}>
+                <div style={{ fontSize: 17, fontWeight: 700, color: '#000' }}>Switch active model?</div>
+                <div style={{ fontSize: 13.5, color: '#000', marginTop: 6 }}>
                   Set <strong>{rollbackTarget.name}</strong> as the active model.
                   All new analysis requests will use this version.
                 </div>
               </div>
             </div>
             <div className="modal-body">
-              <div style={{ padding: '12px 14px', background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 10, fontSize: 12.5, color: '#92400e' }}>
+              <div style={{ padding: '12px 14px', background: '#fff', border: '1px solid #000', borderRadius: 10, fontSize: 12.5, color: '#000' }}>
                 <strong>Note:</strong> Existing analysis results are not affected. Only new requests will use the new model.
               </div>
             </div>

@@ -17,12 +17,12 @@ import AdminModels  from './pages/admin/AdminModels';
 
 function NotFound() {
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f0f4f8' }}>
+    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#fff' }}>
       <div style={{ textAlign: 'center' }}>
-        <div style={{ fontSize: 80, fontWeight: 900, color: '#e2e8f0', letterSpacing: '-4px' }}>404</div>
-        <div style={{ fontSize: 20, fontWeight: 700, color: '#334155', margin: '12px 0 8px' }}>Page not found</div>
-        <div style={{ color: '#64748b', marginBottom: 24 }}>The page you're looking for doesn't exist.</div>
-        <a href="/dashboard" style={{ padding: '10px 20px', background: '#2563eb', color: '#fff', borderRadius: 10, fontWeight: 600, fontSize: 14 }}>
+        <div style={{ fontSize: 80, fontWeight: 900, color: '#000', letterSpacing: '-4px' }}>404</div>
+        <div style={{ fontSize: 20, fontWeight: 700, color: '#000', margin: '12px 0 8px' }}>Page not found</div>
+        <div style={{ color: '#000', marginBottom: 24 }}>The page you're looking for doesn't exist.</div>
+        <a href="/dashboard" style={{ padding: '10px 20px', background: '#000', color: '#fff', borderRadius: 10, fontWeight: 600, fontSize: 14 }}>
           ← Back to Dashboard
         </a>
       </div>
@@ -32,12 +32,12 @@ function NotFound() {
 
 function AccessDenied() {
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f0f4f8' }}>
+    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#fff' }}>
       <div style={{ textAlign: 'center' }}>
-        <div style={{ fontSize: 80, fontWeight: 900, color: '#e2e8f0', letterSpacing: '-4px' }}>403</div>
-        <div style={{ fontSize: 20, fontWeight: 700, color: '#334155', margin: '12px 0 8px' }}>Access denied</div>
-        <div style={{ color: '#64748b', marginBottom: 24 }}>You don't have permission to view this page.</div>
-        <a href="/dashboard" style={{ padding: '10px 20px', background: '#2563eb', color: '#fff', borderRadius: 10, fontWeight: 600, fontSize: 14 }}>
+        <div style={{ fontSize: 80, fontWeight: 900, color: '#000', letterSpacing: '-4px' }}>403</div>
+        <div style={{ fontSize: 20, fontWeight: 700, color: '#000', margin: '12px 0 8px' }}>Access denied</div>
+        <div style={{ color: '#000', marginBottom: 24 }}>You don't have permission to view this page.</div>
+        <a href="/dashboard" style={{ padding: '10px 20px', background: '#000', color: '#fff', borderRadius: 10, fontWeight: 600, fontSize: 14 }}>
           ← Back to Dashboard
         </a>
       </div>

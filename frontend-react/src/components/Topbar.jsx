@@ -24,8 +24,8 @@ export default function Topbar({ breadcrumbs = [] }) {
             <span key={i} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <span className="sep">/</span>
               {b.href
-                ? <span style={{ cursor: 'pointer', color: '#334155' }} onClick={() => navigate(b.href)}>{b.label}</span>
-                : <span style={{ color: '#0f172a', fontWeight: 600 }}>{b.label}</span>
+                ? <span style={{ cursor: 'pointer', color: '#000' }} onClick={() => navigate(b.href)}>{b.label}</span>
+                : <span style={{ color: '#000', fontWeight: 600 }}>{b.label}</span>
               }
             </span>
           ))}

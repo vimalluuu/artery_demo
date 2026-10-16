@@ -87,8 +87,8 @@ export default function Cases() {
       {loadError && (
         <div style={{
           display: 'flex', alignItems: 'center', gap: 10, padding: '14px 18px',
-          background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 12,
-          color: '#dc2626', fontSize: 13.5, marginBottom: 20,
+          background: '#fff', border: '1px solid rgba(0,0,0,0.18)', borderRadius: 12,
+          color: '#000', fontSize: 13.5, marginBottom: 20,
         }}>
           <AlertTriangle size={16} />{loadError}
         </div>
@@ -98,8 +98,8 @@ export default function Cases() {
       {!loadError && (
         <div style={{
           display: 'flex', gap: 8, alignItems: 'flex-start', padding: '10px 16px',
-          background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: 10,
-          fontSize: 12.5, color: '#6b7280', marginBottom: 16,
+          background: '#fff', border: '1px solid rgba(0,0,0,0.18)', borderRadius: 10,
+          fontSize: 12.5, color: '#000', marginBottom: 16,
         }}>
           <Info size={13} style={{ flexShrink: 0, marginTop: 1 }} />
           <span>Severity and confidence are not yet stored by the backend (no inference pipeline). All other case fields are real persisted data.</span>
@@ -122,7 +122,7 @@ export default function Cases() {
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <Filter size={15} style={{ color: '#94a3b8' }} />
+            <Filter size={15} style={{ color: '#000' }} />
             <select
               id="status-filter"
               className="form-select"
@@ -171,7 +171,7 @@ export default function Cases() {
                 [1,2,3,4].map((i) => (
                   <tr key={i}>
                     {[...Array(7)].map((_, j) => (
-                      <td key={j}><div style={{ height: 16, background: '#f1f5f9', borderRadius: 6, width: '80%' }} /></td>
+                      <td key={j}><div style={{ height: 16, background: 'rgba(0,0,0,0.08)', borderRadius: 6, width: '80%' }} /></td>
                     ))}
                   </tr>
                 ))
@@ -194,15 +194,15 @@ export default function Cases() {
                 </tr>
               ) : paged.map((c) => (
                 <tr key={c.id} style={{ cursor: 'pointer' }} onClick={() => navigate(`/cases/${c.id}`)}>
-                  <td><code style={{ fontFamily: 'monospace', fontSize: 12, color: '#94a3b8' }}>#{c.id}</code></td>
-                  <td><code style={{ fontFamily: 'monospace', fontSize: 13, color: '#1d4ed8', fontWeight: 600 }}>{c.caseCode}</code></td>
-                  <td style={{ color: '#475569', fontSize: 13 }}>{c.studyType}</td>
+                  <td><code style={{ fontFamily: 'monospace', fontSize: 12, color: '#000' }}>#{c.id}</code></td>
+                  <td><code style={{ fontFamily: 'monospace', fontSize: 13, color: '#000', fontWeight: 600 }}>{c.caseCode}</code></td>
+                  <td style={{ color: '#000', fontSize: 13 }}>{c.studyType}</td>
                   <td><StatusBadge status={c.status} /></td>
-                  <td style={{ color: '#94a3b8', fontSize: 13 }}>{new Date(c.createdAt).toLocaleDateString()}</td>
+                  <td style={{ color: '#000', fontSize: 13 }}>{new Date(c.createdAt).toLocaleDateString()}</td>
                   <td style={{ textAlign: 'center' }}>
                     {c.hasImage
-                      ? <ImageIcon size={14} style={{ color: '#22c55e' }} title="Image uploaded" />
-                      : <span style={{ color: '#e2e8f0' }}>—</span>}
+                      ? <ImageIcon size={14} style={{ color: '#000' }} title="Image uploaded" />
+                      : <span style={{ color: '#000' }}>—</span>}
                   </td>
                   <td>
                     <button className="btn btn-ghost btn-sm" id={`case-detail-btn-${c.id}`}
@@ -218,8 +218,8 @@ export default function Cases() {
 
         {/* Pagination */}
         {!loading && totalPages > 1 && (
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 20px', borderTop: '1px solid #f1f5f9' }}>
-            <span style={{ fontSize: 13, color: '#64748b' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 20px', borderTop: '1px solid rgba(0,0,0,0.18)' }}>
+            <span style={{ fontSize: 13, color: '#000' }}>
               Page {page} of {totalPages} · {filtered.length} cases
             </span>
             <div style={{ display: 'flex', gap: 6 }}>

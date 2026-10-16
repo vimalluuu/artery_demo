@@ -193,7 +193,7 @@ export default function CaseDetail() {
   // ── Loading / error states ─────────────────────────────────────────────────
   if (loading) return (
     <AppShell breadcrumbs={[{ label: 'Cases', href: '/cases' }, { label: '…' }]}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', paddingTop: 80, gap: 10, color: '#64748b' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', paddingTop: 80, gap: 10, color: '#000' }}>
         <Loader size={18} style={{ animation: 'spin 1s linear infinite' }} /> Loading case…
         <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
       </div>
@@ -240,10 +240,10 @@ export default function CaseDetail() {
         <div className="toast-container">
           <div className={`toast ${toast.type}`}>
             {toast.type === 'success'
-              ? <CheckCircle size={16} style={{ color: '#22c55e' }} />
-              : <AlertTriangle size={16} style={{ color: '#ef4444' }} />}
+              ? <CheckCircle size={16} style={{ color: '#fff' }} />
+              : <AlertTriangle size={16} style={{ color: '#fff' }} />}
             {toast.msg}
-            <button onClick={() => setToast(null)} style={{ marginLeft: 'auto', background: 'none', border: 'none', cursor: 'pointer', color: '#94a3b8' }}>
+            <button onClick={() => setToast(null)} style={{ marginLeft: 'auto', background: 'none', border: 'none', cursor: 'pointer', color: '#fff' }}>
               <X size={14} />
             </button>
           </div>
@@ -265,7 +265,7 @@ export default function CaseDetail() {
               </span>
             )}
             {caseData.hasVolume && (
-              <span className="badge badge-gray" style={{ display: 'inline-flex', alignItems: 'center', gap: 5, background: '#ede9fe', color: '#5b21b6' }}>
+              <span className="badge badge-gray" style={{ display: 'inline-flex', alignItems: 'center', gap: 5, background: '#fff', color: '#000' }}>
                 <Upload size={11} /> Volume uploaded
               </span>
             )}
@@ -307,8 +307,8 @@ export default function CaseDetail() {
               {!canWrite && (
                 <div style={{
                   display: 'flex', gap: 8, alignItems: 'flex-start', padding: '10px 14px',
-                  background: '#fef9c3', border: '1px solid #fde68a', borderRadius: 10,
-                  fontSize: 13, color: '#92400e', marginBottom: 16,
+                  background: '#fff', border: '1px solid #000', borderRadius: 10,
+                  fontSize: 13, color: '#000', marginBottom: 16,
                 }}>
                   <Info size={14} style={{ flexShrink: 0, marginTop: 1 }} />
                   Image upload requires Clinician or Admin role.
@@ -339,15 +339,15 @@ export default function CaseDetail() {
                 <div className="dropzone-icon"><Upload size={26} /></div>
                 {file ? (
                   <div>
-                    <div style={{ fontWeight: 700, color: '#0f172a' }}>{file.name}</div>
-                    <div style={{ fontSize: 12.5, color: '#64748b' }}>{(file.size / 1e6).toFixed(1)} MB</div>
+                    <div style={{ fontWeight: 700, color: '#000' }}>{file.name}</div>
+                    <div style={{ fontSize: 12.5, color: '#000' }}>{(file.size / 1e6).toFixed(1)} MB</div>
                   </div>
                 ) : (
                   <div>
-                    <div style={{ fontWeight: 600, color: '#334155', marginBottom: 4 }}>
+                    <div style={{ fontWeight: 600, color: '#000', marginBottom: 4 }}>
                       {canWrite ? 'Drop your scan here or click to browse' : 'Upload not permitted for your role'}
                     </div>
-                    <div style={{ fontSize: 12.5, color: '#64748b' }}>PNG, JPEG, TIFF · Max 20 MB · 8192 px</div>
+                    <div style={{ fontSize: 12.5, color: '#000' }}>PNG, JPEG, TIFF · Max 20 MB · 8192 px</div>
                   </div>
                 )}
               </div>
@@ -355,8 +355,8 @@ export default function CaseDetail() {
               {uploadError && (
                 <div style={{
                   display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px',
-                  background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 10,
-                  color: '#dc2626', fontSize: 13, marginTop: 12,
+                  background: '#fff', border: '1px solid rgba(0,0,0,0.18)', borderRadius: 10,
+                  color: '#000', fontSize: 13, marginTop: 12,
                 }}>
                   <AlertTriangle size={14} />{uploadError}
                 </div>
@@ -364,7 +364,7 @@ export default function CaseDetail() {
 
               {uploading && (
                 <div style={{ marginTop: 16 }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: '#64748b', marginBottom: 6 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: '#000', marginBottom: 6 }}>
                     <span>Uploading…</span><span>{uploadPct}%</span>
                   </div>
                   <div className="progress-track">
@@ -400,7 +400,7 @@ export default function CaseDetail() {
               </div>
               <div className="card-body">
                 {metaLoading ? (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#64748b', fontSize: 13 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#000', fontSize: 13 }}>
                     <Loader size={14} style={{ animation: 'spin 1s linear infinite' }} /> Loading…
                   </div>
                 ) : imageMeta ? (
@@ -414,13 +414,13 @@ export default function CaseDetail() {
                       ['File size',  `${(imageMeta.file_size_bytes / 1024).toFixed(1)} KB`],
                     ].map(([label, value]) => (
                       <div key={label}>
-                        <div style={{ fontSize: 11, color: '#94a3b8', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>{label}</div>
-                        <div style={{ color: '#0f172a', fontWeight: 600 }}>{value}</div>
+                        <div style={{ fontSize: 11, color: '#000', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>{label}</div>
+                        <div style={{ color: '#000', fontWeight: 600 }}>{value}</div>
                       </div>
                     ))}
                   </div>
                 ) : (
-                  <div style={{ color: '#94a3b8', fontSize: 13 }}>Image metadata unavailable.</div>
+                  <div style={{ color: '#000', fontSize: 13 }}>Image metadata unavailable.</div>
                 )}
               </div>
             </div>
@@ -430,20 +430,20 @@ export default function CaseDetail() {
           <div className="card">
             <div className="card-header">
               <h2 className="card-title">
-                <Upload size={17} style={{ display: 'inline', marginRight: 8, verticalAlign: 'middle', color: '#7c3aed' }} />
+                <Upload size={17} style={{ display: 'inline', marginRight: 8, verticalAlign: 'middle', color: '#000' }} />
                 Volume Upload
-                <span style={{ marginLeft: 10, fontSize: 11, color: '#94a3b8', fontWeight: 400 }}>{IMAGING_GUIDANCE.volumetric.headerBadgeText}</span>
+                <span style={{ marginLeft: 10, fontSize: 11, color: '#000', fontWeight: 400 }}>{IMAGING_GUIDANCE.volumetric.headerBadgeText}</span>
               </h2>
             </div>
             <div className="card-body">
               {!canWrite && (
-                <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start', padding: '10px 14px', background: '#fef9c3', border: '1px solid #fde68a', borderRadius: 10, fontSize: 13, color: '#92400e', marginBottom: 16 }}>
+                <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start', padding: '10px 14px', background: '#fff', border: '1px solid #000', borderRadius: 10, fontSize: 13, color: '#000', marginBottom: 16 }}>
                   <Info size={14} style={{ flexShrink: 0, marginTop: 1 }} />
                   Volume upload requires Clinician or Admin role.
                 </div>
               )}
-              <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start', padding: '10px 14px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 10, fontSize: 12.5, color: '#475569', marginBottom: 16 }}>
-                <Info size={14} style={{ flexShrink: 0, marginTop: 2, color: '#7c3aed' }} />
+              <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start', padding: '10px 14px', background: '#fff', border: '1px solid rgba(0,0,0,0.18)', borderRadius: 10, fontSize: 12.5, color: '#000', marginBottom: 16 }}>
+                <Info size={14} style={{ flexShrink: 0, marginTop: 2, color: '#000' }} />
                 <div>
                   <strong>NIfTI Volume Ingestion:</strong> {IMAGING_GUIDANCE.volumetric.metadataDisclaimer}
                 </div>
@@ -451,11 +451,11 @@ export default function CaseDetail() {
               <div
                 id="volume-dropzone"
                 style={{
-                  border: '2px dashed', borderColor: volumeFile ? '#7c3aed' : '#e2e8f0',
+                  border: '2px dashed', borderColor: volumeFile ? '#000' : 'rgba(0,0,0,0.3)',
                   borderRadius: 12, padding: '24px 20px', textAlign: 'center',
                   cursor: canWrite ? 'pointer' : 'default',
                   opacity: canWrite ? 1 : 0.6,
-                  background: volumeFile ? '#faf5ff' : '#fafafa',
+                  background: '#fff',
                   transition: 'border-color 0.15s',
                 }}
                 onClick={() => canWrite && volumeFileRef.current?.click()}
@@ -476,33 +476,33 @@ export default function CaseDetail() {
                     if (f) { setVolumeFile(f); setVolumeUploadError(''); }
                   }}
                 />
-                <div style={{ color: '#7c3aed', marginBottom: 8 }}><Upload size={24} /></div>
+                <div style={{ color: '#000', marginBottom: 8 }}><Upload size={24} /></div>
                 {volumeFile ? (
                   <div>
-                    <div style={{ fontWeight: 700, color: '#0f172a' }}>{volumeFile.name}</div>
-                    <div style={{ fontSize: 12.5, color: '#64748b' }}>{(volumeFile.size / 1e6).toFixed(1)} MB</div>
+                    <div style={{ fontWeight: 700, color: '#000' }}>{volumeFile.name}</div>
+                    <div style={{ fontSize: 12.5, color: '#000' }}>{(volumeFile.size / 1e6).toFixed(1)} MB</div>
                   </div>
                 ) : (
                   <div>
-                    <div style={{ fontWeight: 600, color: '#334155', marginBottom: 4 }}>
+                    <div style={{ fontWeight: 600, color: '#000', marginBottom: 4 }}>
                       {canWrite ? 'Drop NIfTI file or click to browse' : 'Upload not permitted for your role'}
                     </div>
-                    <div style={{ fontSize: 12.5, color: '#64748b' }}>{IMAGING_GUIDANCE.volumetric.dropzoneText}</div>
+                    <div style={{ fontSize: 12.5, color: '#000' }}>{IMAGING_GUIDANCE.volumetric.dropzoneText}</div>
                   </div>
                 )}
               </div>
               {volumeUploadError && (
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 10, color: '#dc2626', fontSize: 13, marginTop: 12 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px', background: '#fff', border: '1px solid rgba(0,0,0,0.18)', borderRadius: 10, color: '#000', fontSize: 13, marginTop: 12 }}>
                   <AlertTriangle size={14} />{volumeUploadError}
                 </div>
               )}
               {volumeUploading && (
                 <div style={{ marginTop: 16 }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: '#64748b', marginBottom: 6 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: '#000', marginBottom: 6 }}>
                     <span>Uploading volume…</span><span>{volumeUploadPct}%</span>
                   </div>
                   <div className="progress-track">
-                    <div className="progress-fill" style={{ width: `${volumeUploadPct}%`, background: '#7c3aed' }} />
+                    <div className="progress-fill" style={{ width: `${volumeUploadPct}%`, background: '#000' }} />
                   </div>
                 </div>
               )}
@@ -511,7 +511,7 @@ export default function CaseDetail() {
                 className="btn btn-primary"
                 disabled={!volumeFile || volumeUploading || !canWrite}
                 onClick={handleVolumeUpload}
-                style={{ marginTop: 14, background: canWrite && volumeFile ? '#7c3aed' : undefined }}
+                style={{ marginTop: 14, background: canWrite && volumeFile ? '#000' : undefined }}
               >
                 {volumeUploading
                   ? <><Loader size={15} style={{ animation: 'spin 1s linear infinite' }} /> Uploading…</>
@@ -525,14 +525,14 @@ export default function CaseDetail() {
             <div className="card">
               <div className="card-header">
                 <h2 className="card-title">
-                  <Info size={17} style={{ display: 'inline', marginRight: 8, verticalAlign: 'middle', color: '#7c3aed' }} />
+                  <Info size={17} style={{ display: 'inline', marginRight: 8, verticalAlign: 'middle', color: '#000' }} />
                   Volume Metadata
-                  <span style={{ marginLeft: 10, fontSize: 11, color: '#94a3b8', fontWeight: 400 }}>NIfTI header · no voxel data</span>
+                  <span style={{ marginLeft: 10, fontSize: 11, color: '#000', fontWeight: 400 }}>NIfTI header · no voxel data</span>
                 </h2>
               </div>
               <div className="card-body">
                 {volumeMetaLoading ? (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#64748b', fontSize: 13 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#000', fontSize: 13 }}>
                     <Loader size={14} style={{ animation: 'spin 1s linear infinite' }} /> Loading…
                   </div>
                 ) : volumeMeta ? (
@@ -548,13 +548,13 @@ export default function CaseDetail() {
                       ['File size',     `${(volumeMeta.file_size_bytes / (1024 * 1024)).toFixed(2)} MB`],
                     ].map(([label, value]) => (
                       <div key={label}>
-                        <div style={{ fontSize: 11, color: '#94a3b8', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>{label}</div>
-                        <div style={{ color: '#0f172a', fontWeight: 600 }}>{value}</div>
+                        <div style={{ fontSize: 11, color: '#000', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>{label}</div>
+                        <div style={{ color: '#000', fontWeight: 600 }}>{value}</div>
                       </div>
                     ))}
                   </div>
                 ) : (
-                  <div style={{ color: '#94a3b8', fontSize: 13 }}>Volume metadata unavailable.</div>
+                  <div style={{ color: '#000', fontSize: 13 }}>Volume metadata unavailable.</div>
                 )}
               </div>
             </div>
@@ -571,8 +571,8 @@ export default function CaseDetail() {
             <div className="card-body">
               <div style={{
                 display: 'flex', gap: 10, alignItems: 'flex-start', padding: '14px 16px',
-                background: '#fef9c3', border: '1px solid #fde68a', borderRadius: 10,
-                fontSize: 13, color: '#92400e',
+                background: '#fff', border: '1px solid #000', borderRadius: 10,
+                fontSize: 13, color: '#000',
               }}>
                 <Info size={14} style={{ flexShrink: 0, marginTop: 1 }} />
                 <div>
@@ -590,7 +590,7 @@ export default function CaseDetail() {
           <div className="card-header"><h2 className="card-title">Case Information</h2></div>
           <div className="card-body">
             {[
-              { label: 'DB Case ID',   value: <code style={{ fontFamily: 'monospace', color: '#1d4ed8' }}>#{caseData.id}</code> },
+              { label: 'DB Case ID',   value: <code style={{ fontFamily: 'monospace', color: '#000' }}>#{caseData.id}</code> },
               { label: 'Case Code',    value: caseData.caseCode },
               { label: 'Study Type',   value: caseData.studyType },
               { label: 'Modality',     value: caseData.modality  || '—' },
@@ -606,21 +606,21 @@ export default function CaseDetail() {
               { label: 'Image',        value: caseData.hasImage ? '✓ Uploaded' : '— Not yet uploaded' },
               { label: 'Volume',       value: caseData.hasVolume ? '✓ Uploaded' : '— Not yet uploaded' },
             ].map(({ label, value }) => (
-              <div key={label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', paddingBottom: 12, marginBottom: 12, borderBottom: '1px solid #f8fafc' }}>
-                <span style={{ fontSize: 12.5, color: '#64748b', fontWeight: 500 }}>{label}</span>
-                <span style={{ fontSize: 13, color: '#0f172a', fontWeight: 600, textAlign: 'right', maxWidth: '60%' }}>{value}</span>
+              <div key={label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', paddingBottom: 12, marginBottom: 12, borderBottom: '1px solid rgba(0,0,0,0.18)' }}>
+                <span style={{ fontSize: 12.5, color: '#000', fontWeight: 500 }}>{label}</span>
+                <span style={{ fontSize: 13, color: '#000', fontWeight: 600, textAlign: 'right', maxWidth: '60%' }}>{value}</span>
               </div>
             ))}
 
             {/* Notes */}
             {caseData.notes && (
-              <div style={{ marginTop: 8, padding: '8px 10px', background: '#f8fafc', borderRadius: 8, fontSize: 12.5, color: '#475569', lineHeight: 1.5 }}>
-                <div style={{ fontSize: 11, color: '#94a3b8', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 4 }}>Notes</div>
+              <div style={{ marginTop: 8, padding: '8px 10px', background: '#fff', borderRadius: 8, fontSize: 12.5, color: '#000', lineHeight: 1.5 }}>
+                <div style={{ fontSize: 11, color: '#000', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 4 }}>Notes</div>
                 {caseData.notes}
               </div>
             )}
             {/* Unsupported fields notice */}
-            <div style={{ marginTop: 8, padding: '10px 12px', background: '#f8fafc', borderRadius: 8, fontSize: 12, color: '#94a3b8' }}>
+            <div style={{ marginTop: 8, padding: '10px 12px', background: '#fff', borderRadius: 8, fontSize: 12, color: '#000' }}>
               <strong>Still not in backend:</strong><br />
               Severity, confidence, analysis history, risk factors, and createdBy
               are not stored by the current backend schema.

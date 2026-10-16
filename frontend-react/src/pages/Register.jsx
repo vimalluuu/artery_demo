@@ -35,20 +35,20 @@ export default function Register() {
   return (
     <div style={{
       minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center',
-      background: 'linear-gradient(135deg, #f0f4f8 0%, #e8f0fe 100%)', padding: '32px 16px',
+      background: '#fff', padding: '32px 16px',
     }}>
       <div style={{ width: '100%', maxWidth: 520 }}>
         {/* Header */}
         <div style={{ textAlign: 'center', marginBottom: 32 }}>
           <div style={{
             width: 52, height: 52, borderRadius: 15, margin: '0 auto 16px',
-            background: 'linear-gradient(135deg, #14b8a6, #3b82f6)',
+            background: '#000',
             display: 'grid', placeItems: 'center', fontSize: 24, fontWeight: 800, color: '#fff',
           }}>V</div>
-          <h1 style={{ fontSize: 28, fontWeight: 800, color: '#0f172a', letterSpacing: '-0.8px', margin: '0 0 6px' }}>
+          <h1 style={{ fontSize: 28, fontWeight: 800, color: '#000', letterSpacing: '-0.8px', margin: '0 0 6px' }}>
             Create your account
           </h1>
-          <p style={{ color: '#64748b', fontSize: 14, margin: 0 }}>Join VascuAI research platform</p>
+          <p style={{ color: '#000', fontSize: 14, margin: 0 }}>Join VascuAI research platform</p>
         </div>
 
         {/* Card */}
@@ -57,8 +57,8 @@ export default function Register() {
             {error && (
               <div style={{
                 display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px',
-                background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 10,
-                color: '#dc2626', fontSize: 13, marginBottom: 18,
+                background: '#fff', border: '1px solid rgba(0,0,0,0.18)', borderRadius: 10,
+                color: '#000', fontSize: 13, marginBottom: 18,
               }}>
                 <AlertCircle size={16} />{error}
               </div>
@@ -99,7 +99,7 @@ export default function Register() {
                     className="form-input" placeholder="Min. 12 characters"
                     value={form.password} onChange={handle} required style={{ paddingRight: 44 }} />
                   <button type="button" onClick={() => setShowPw((s) => !s)}
-                    style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#64748b' }}>
+                    style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#000' }}>
                     {showPw ? <EyeOff size={16} /> : <Eye size={16} />}
                   </button>
                 </div>
@@ -111,7 +111,7 @@ export default function Register() {
               </div>
             </div>
 
-            <div style={{ padding: '12px 14px', background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 10, marginTop: 16, fontSize: 12, color: '#92400e' }}>
+            <div style={{ padding: '12px 14px', background: '#fff', border: '1px solid #000', borderRadius: 10, marginTop: 16, fontSize: 12, color: '#000' }}>
               ⚠ Do not upload real patient-identifiable information. De-identify all data before use.
             </div>
 
@@ -121,9 +121,9 @@ export default function Register() {
             </button>
           </form>
 
-          <p style={{ textAlign: 'center', color: '#64748b', fontSize: 13.5, marginTop: 20 }}>
+          <p style={{ textAlign: 'center', color: '#000', fontSize: 13.5, marginTop: 20 }}>
             Already have an account?{' '}
-            <Link to="/login" style={{ color: '#2563eb', fontWeight: 600 }}>Sign in</Link>
+            <Link to="/login" style={{ color: '#000', fontWeight: 600 }}>Sign in</Link>
           </p>
         </div>
       </div>

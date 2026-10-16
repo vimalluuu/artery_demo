@@ -32,7 +32,7 @@ export default function Login() {
 
       {/* Left brand panel */}
       <section style={{
-        background: 'linear-gradient(145deg, #0d1b2a 0%, #0f2744 55%, #142e52 100%)',
+        background: '#000',
         padding: 'clamp(36px,5vw,72px)',
         display: 'flex', flexDirection: 'column', justifyContent: 'space-between', color: '#fff',
       }}>
@@ -40,40 +40,40 @@ export default function Login() {
         <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
           <div style={{
             width: 48, height: 48, borderRadius: 14,
-            background: 'linear-gradient(135deg, #14b8a6, #3b82f6)',
+            background: '#fff',
             display: 'grid', placeItems: 'center',
-            fontSize: 22, fontWeight: 800, color: '#fff',
+            fontSize: 22, fontWeight: 800, color: '#000',
           }}>V</div>
           <div>
             <div style={{ fontSize: 22, fontWeight: 800, letterSpacing: '-0.5px' }}>
-              Vascu<span style={{ color: '#5eead4' }}>AI</span>
+              Vascu<span style={{ color: '#fff' }}>AI</span>
             </div>
-            <div style={{ fontSize: 11, color: 'rgba(148,163,184,0.7)' }}>Medical Research Platform</div>
+            <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.7)' }}>Medical Research Platform</div>
           </div>
         </div>
 
         {/* Hero copy */}
         <div style={{ maxWidth: 440, margin: '40px auto' }}>
-          <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '1.8px', color: '#5eead4', textTransform: 'uppercase', marginBottom: 16 }}>
+          <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '1.8px', color: '#fff', textTransform: 'uppercase', marginBottom: 16 }}>
             AI-Powered Medical Research
           </div>
           <h1 style={{ fontSize: 'clamp(38px,4.5vw,60px)', fontWeight: 800, letterSpacing: '-2.5px', lineHeight: 1.05, margin: '0 0 20px', color: '#fff' }}>
             See beyond<br />the scan.
           </h1>
-          <p style={{ color: '#9eb5cc', fontSize: 15, lineHeight: 1.85, margin: 0 }}>
+          <p style={{ color: '#fff', fontSize: 15, lineHeight: 1.85, margin: 0 }}>
             Advanced deep learning for artery segmentation and stenosis analysis,
             designed to support medical imaging research.
           </p>
 
           <div style={{ marginTop: 36, display: 'grid', gap: 16 }}>
             {['AI-assisted artery segmentation', 'Structured stenosis analysis', 'Research-focused model evaluation'].map((f) => (
-              <div key={f} style={{ display: 'flex', alignItems: 'center', gap: 12, color: '#dce8f4', fontSize: 13.5 }}>
+              <div key={f} style={{ display: 'flex', alignItems: 'center', gap: 12, color: '#fff', fontSize: 13.5 }}>
                 <div style={{
                   width: 26, height: 26, borderRadius: '50%',
-                  background: 'rgba(94,234,212,0.12)',
-                  border: '1px solid rgba(94,234,212,0.3)',
+                  background: 'rgba(255,255,255,0.12)',
+                  border: '1px solid rgba(255,255,255,0.3)',
                   display: 'grid', placeItems: 'center',
-                  color: '#5eead4', fontSize: 12, flexShrink: 0,
+                  color: '#fff', fontSize: 12, flexShrink: 0,
                 }}>✓</div>
                 {f}
               </div>
@@ -81,8 +81,8 @@ export default function Login() {
           </div>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, color: '#7fa3c0', fontSize: 12 }}>
-          <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#5eead4' }} />
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, color: '#fff', fontSize: 12 }}>
+          <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#fff' }} />
           Academic research prototype — authorised accounts only
         </div>
       </section>
@@ -90,26 +90,26 @@ export default function Login() {
       {/* Right login panel */}
       <section style={{
         display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-        padding: '48px clamp(24px,5vw,80px) 28px', background: '#f7f9fc',
+        padding: '48px clamp(24px,5vw,80px) 28px', background: '#fff',
       }}>
         <div style={{ width: '100%', maxWidth: 420 }}>
 
           <div style={{ marginBottom: 24 }}>
-            <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '1.5px', textTransform: 'uppercase', color: '#2563eb', marginBottom: 10 }}>
+            <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '1.5px', textTransform: 'uppercase', color: '#000', marginBottom: 10 }}>
               WELCOME BACK
             </div>
-            <h2 style={{ fontSize: 'clamp(26px,3vw,34px)', fontWeight: 800, color: '#0f172a', letterSpacing: '-1px', margin: '0 0 8px' }}>
+            <h2 style={{ fontSize: 'clamp(26px,3vw,34px)', fontWeight: 800, color: '#000', letterSpacing: '-1px', margin: '0 0 8px' }}>
               Sign in to your workspace
             </h2>
-            <p style={{ color: '#64748b', fontSize: 14, margin: 0 }}>Enter your research credentials to continue.</p>
+            <p style={{ color: '#000', fontSize: 14, margin: 0 }}>Enter your research credentials to continue.</p>
           </div>
 
           <form id="login-form" onSubmit={submit}>
             {(error || sessionError) && (
               <div style={{
                 display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px',
-                background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 10,
-                color: '#dc2626', fontSize: 13, marginBottom: 18,
+                background: '#fff', border: '1px solid rgba(0,0,0,0.18)', borderRadius: 10,
+                color: '#000', fontSize: 13, marginBottom: 18,
               }}>
                 <AlertCircle size={16} />
                 {error || sessionError}
@@ -141,7 +141,7 @@ export default function Login() {
                   onClick={() => setShowPw((s) => !s)}
                   style={{
                     position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)',
-                    background: 'none', border: 'none', cursor: 'pointer', color: '#64748b', padding: 0,
+                    background: 'none', border: 'none', cursor: 'pointer', color: '#000', padding: 0,
                   }}
                 >{showPw ? <EyeOff size={17} /> : <Eye size={17} />}</button>
               </div>
@@ -158,21 +158,21 @@ export default function Login() {
             </button>
           </form>
 
-          <p style={{ textAlign: 'center', color: '#64748b', fontSize: 13.5, marginTop: 28 }}>
+          <p style={{ textAlign: 'center', color: '#000', fontSize: 13.5, marginTop: 28 }}>
             New to VascuAI?{' '}
-            <Link to="/register" style={{ color: '#2563eb', fontWeight: 600 }}>Create an account</Link>
+            <Link to="/register" style={{ color: '#000', fontWeight: 600 }}>Create an account</Link>
           </p>
 
-          <p style={{ textAlign: 'center', color: '#94a3b8', fontSize: 11.5, marginTop: 20 }}>
+          <p style={{ textAlign: 'center', color: '#000', fontSize: 11.5, marginTop: 20 }}>
             ⓘ Use only authorised research accounts. Authentication and case access are logged.
           </p>
         </div>
 
         <footer style={{ marginTop: 48, textAlign: 'center', maxWidth: 380 }}>
-          <p style={{ color: '#94a3b8', fontSize: 11, lineHeight: 1.7 }}>
+          <p style={{ color: '#000', fontSize: 11, lineHeight: 1.7 }}>
             AI-generated outputs are for research purposes only and require qualified clinical review.
           </p>
-          <span style={{ color: '#cbd5e1', fontSize: 10 }}>© 2026 VascuAI · Medical Imaging Research</span>
+          <span style={{ color: '#000', fontSize: 10 }}>© 2026 VascuAI · Medical Imaging Research</span>
         </footer>
       </section>
     </div>

@@ -61,17 +61,17 @@ export default function Profile() {
           <div className="card" style={{ padding: 24, textAlign: 'center' }}>
             <div style={{
               width: 80, height: 80, borderRadius: '50%', margin: '0 auto 14px',
-              background: 'linear-gradient(135deg, #3b82f6, #8b5cf6)',
+              background: '#000',
               display: 'grid', placeItems: 'center',
               fontSize: 28, fontWeight: 800, color: '#fff',
             }}>
               {user?.name?.split(' ').map((n) => n[0]).join('').slice(0, 2) || 'U'}
             </div>
-            <div style={{ fontWeight: 700, fontSize: 15, color: '#0f172a' }}>{user?.name}</div>
-            <div style={{ fontSize: 12.5, color: '#64748b', marginTop: 4 }}>{user?.role}</div>
-            <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 2 }}>{user?.email}</div>
+            <div style={{ fontWeight: 700, fontSize: 15, color: '#000' }}>{user?.name}</div>
+            <div style={{ fontSize: 12.5, color: '#000', marginTop: 4 }}>{user?.role}</div>
+            <div style={{ fontSize: 12, color: '#000', marginTop: 2 }}>{user?.email}</div>
             <div className="divider" />
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6, justifyContent: 'center', fontSize: 12, color: '#475569' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, justifyContent: 'center', fontSize: 12, color: '#000' }}>
               <Building2 size={13} /> {user?.institution || ''}
             </div>
           </div>
@@ -79,7 +79,7 @@ export default function Profile() {
           {TABS.map((t) => (
             <button key={t.id}
               className={`nav-item${tab === t.id ? ' active' : ''}`}
-              style={{ background: tab === t.id ? '#eff6ff' : '#fff', color: tab === t.id ? '#1d4ed8' : '#334155', border: '1px solid #e2e8f0', borderRadius: 10, justifyContent: 'flex-start' }}
+              style={{ background: tab === t.id ? '#000' : '#fff', color: tab === t.id ? '#fff' : '#000', border: '1px solid rgba(0,0,0,0.18)', borderRadius: 10, justifyContent: 'flex-start' }}
               onClick={() => setTab(t.id)}>
               {t.icon}{t.label}
             </button>
@@ -98,7 +98,7 @@ export default function Profile() {
               <div className="card-body">
                 {profileError && <p role="alert">{profileError}</p>}
                 {saved && (
-                  <div style={{ display: 'flex', gap: 8, padding: '10px 14px', background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 10, color: '#15803d', fontSize: 13, marginBottom: 18 }}>
+                  <div style={{ display: 'flex', gap: 8, padding: '10px 14px', background: '#fff', border: '1px solid rgba(0,0,0,0.18)', borderRadius: 10, color: '#000', fontSize: 13, marginBottom: 18 }}>
                     <CheckCircle size={16} /> Profile updated successfully.
                   </div>
                 )}
@@ -128,7 +128,7 @@ export default function Profile() {
                   <div className="form-group">
                     <label className="form-label">Role</label>
                     <input className="form-input" value={user?.role || 'Clinician'} disabled
-                      style={{ background: '#f8fafc', color: '#64748b' }} />
+                      style={{ background: '#fff', color: '#000' }} />
                     <p className="form-hint">Role is assigned by an administrator — contact admin to change.</p>
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
@@ -144,12 +144,12 @@ export default function Profile() {
               <div className="card-header"><h2 className="card-title">Change Password</h2></div>
               <div className="card-body">
                 {pwError && (
-                  <div style={{ display: 'flex', gap: 8, padding: '10px 14px', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 10, color: '#dc2626', fontSize: 13, marginBottom: 18 }}>
+                  <div style={{ display: 'flex', gap: 8, padding: '10px 14px', background: '#fff', border: '1px solid rgba(0,0,0,0.18)', borderRadius: 10, color: '#000', fontSize: 13, marginBottom: 18 }}>
                     <AlertCircle size={16} />{pwError}
                   </div>
                 )}
                 {pwSuccess && (
-                  <div style={{ display: 'flex', gap: 8, padding: '10px 14px', background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 10, color: '#15803d', fontSize: 13, marginBottom: 18 }}>
+                  <div style={{ display: 'flex', gap: 8, padding: '10px 14px', background: '#fff', border: '1px solid rgba(0,0,0,0.18)', borderRadius: 10, color: '#000', fontSize: 13, marginBottom: 18 }}>
                     <CheckCircle size={16} /> Password changed successfully.
                   </div>
                 )}

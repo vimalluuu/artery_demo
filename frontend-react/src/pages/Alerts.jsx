@@ -12,11 +12,11 @@ const MOCK_ALERTS = [
 ];
 
 const LEVEL_CONFIG = {
-  critical: { icon: <XCircle size={18} />,     color: '#dc2626', bg: '#fef2f2', border: '#fecaca',  label: 'Critical' },
-  warning:  { icon: <AlertTriangle size={18} />,color: '#d97706', bg: '#fffbeb', border: '#fde68a',  label: 'Warning' },
-  error:    { icon: <XCircle size={18} />,     color: '#dc2626', bg: '#fef2f2', border: '#fecaca',  label: 'Error' },
-  info:     { icon: <Info size={18} />,         color: '#2563eb', bg: '#eff6ff', border: '#bfdbfe',  label: 'Info' },
-  success:  { icon: <CheckCircle size={18} />,  color: '#16a34a', bg: '#f0fdf4', border: '#bbf7d0',  label: 'Success' },
+  critical: { icon: <XCircle size={18} />,     color: '#000', bg: '#fff', border: 'rgba(0,0,0,0.18)',  label: 'Critical' },
+  warning:  { icon: <AlertTriangle size={18} />,color: '#000', bg: '#fff', border: '#000',  label: 'Warning' },
+  error:    { icon: <XCircle size={18} />,     color: '#000', bg: '#fff', border: 'rgba(0,0,0,0.18)',  label: 'Error' },
+  info:     { icon: <Info size={18} />,         color: '#000', bg: '#fff', border: 'rgba(0,0,0,0.18)',  label: 'Info' },
+  success:  { icon: <CheckCircle size={18} />,  color: '#000', bg: '#fff', border: 'rgba(0,0,0,0.18)',  label: 'Success' },
 };
 
 export default function Alerts() {
@@ -42,7 +42,7 @@ export default function Alerts() {
             {unread > 0 && (
               <span style={{
                 display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                width: 28, height: 28, borderRadius: '50%', background: '#ef4444', color: '#fff',
+                width: 28, height: 28, borderRadius: '50%', background: '#000', color: '#fff',
                 fontSize: 13, fontWeight: 700, marginLeft: 12, verticalAlign: 'middle',
               }}>{unread}</span>
             )}
@@ -83,7 +83,7 @@ export default function Alerts() {
               style={{
                 display: 'flex', gap: 14, padding: '16px 18px',
                 background: a.read ? '#fff' : cfg.bg,
-                border: `1px solid ${a.read ? '#e2e8f0' : cfg.border}`,
+                border: `1px solid ${a.read ? 'rgba(0,0,0,0.18)' : cfg.border}`,
                 borderLeft: `4px solid ${cfg.color}`,
                 borderRadius: 12, cursor: 'pointer', transition: 'background 0.15s',
               }}
@@ -93,14 +93,14 @@ export default function Alerts() {
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <span style={{ fontSize: 14, fontWeight: a.read ? 600 : 700, color: '#0f172a' }}>{a.title}</span>
+                    <span style={{ fontSize: 14, fontWeight: a.read ? 600 : 700, color: '#000' }}>{a.title}</span>
                     {!a.read && <span style={{ width: 8, height: 8, borderRadius: '50%', background: cfg.color, display: 'inline-block' }} />}
                   </div>
-                  <span style={{ fontSize: 11.5, color: '#94a3b8', flexShrink: 0, marginLeft: 12 }}>
+                  <span style={{ fontSize: 11.5, color: '#000', flexShrink: 0, marginLeft: 12 }}>
                     {new Date(a.time).toLocaleString()}
                   </span>
                 </div>
-                <div style={{ fontSize: 13.5, color: '#475569', lineHeight: 1.6 }}>{a.message}</div>
+                <div style={{ fontSize: 13.5, color: '#000', lineHeight: 1.6 }}>{a.message}</div>
               </div>
               <button
                 className="btn btn-ghost btn-sm"

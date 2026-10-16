@@ -35,10 +35,10 @@ export default function Dashboard() {
 
   // Status distribution for doughnut chart (real backend statuses)
   const statusDist = [
-    { label: 'Complete',   count: complete,                                                            color: '#22c55e' },
-    { label: 'Processing', count: processing,                                                          color: '#3b82f6' },
-    { label: 'Pending',    count: cases.filter((c) => c.status === 'Pending').length,                  color: '#eab308' },
-    { label: 'Failed',     count: cases.filter((c) => c.status === 'Failed').length,                   color: '#ef4444' },
+    { label: 'Complete',   count: complete,                                                            color: '#000' },
+    { label: 'Processing', count: processing,                                                          color: 'rgba(0,0,0,0.65)' },
+    { label: 'Pending',    count: cases.filter((c) => c.status === 'Pending').length,                  color: 'rgba(0,0,0,0.35)' },
+    { label: 'Failed',     count: cases.filter((c) => c.status === 'Failed').length,                   color: 'rgba(0,0,0,0.12)' },
   ];
 
   const doughnutData = {
@@ -46,7 +46,8 @@ export default function Dashboard() {
     datasets: [{
       data: statusDist.map((s) => s.count || 0),
       backgroundColor: statusDist.map((s) => s.color),
-      borderWidth: 0,
+      borderColor: '#fff',
+      borderWidth: 2,
       hoverOffset: 6,
     }],
   };
@@ -58,7 +59,7 @@ export default function Dashboard() {
     datasets: [{
       label: 'Cases processed',
       data: [4, 7, 5, 9, 6, 3, 2],
-      backgroundColor: 'rgba(37,99,235,0.75)',
+      backgroundColor: 'rgba(0,0,0,0.75)',
       borderRadius: 6,
       borderSkipped: false,
     }],
@@ -66,18 +67,18 @@ export default function Dashboard() {
 
   const barOptions = {
     responsive: true, maintainAspectRatio: false,
-    plugins: { legend: { display: false }, tooltip: { backgroundColor: '#1e293b' } },
+    plugins: { legend: { display: false }, tooltip: { backgroundColor: '#000' } },
     scales: {
-      x: { grid: { display: false }, ticks: { color: '#94a3b8', font: { size: 11 } } },
-      y: { grid: { color: '#f1f5f9' }, ticks: { color: '#94a3b8', font: { size: 11 } }, beginAtZero: true },
+      x: { grid: { display: false }, ticks: { color: '#000', font: { size: 11 } } },
+      y: { grid: { color: 'rgba(0,0,0,0.1)' }, ticks: { color: '#000', font: { size: 11 } }, beginAtZero: true },
     },
   };
 
   const STATS = [
-    { label: 'Total Cases',       value: total,      icon: FolderOpen,  color: '#dbeafe', iconColor: '#2563eb' },
-    { label: 'Analyses Complete', value: complete,   icon: CheckCircle, color: '#dcfce7', iconColor: '#16a34a' },
-    { label: 'Processing',        value: processing, icon: Clock,       color: '#fef9c3', iconColor: '#d97706' },
-    { label: 'Images Uploaded',   value: withImage,  icon: ImageIcon,   color: '#ede9fe', iconColor: '#7c3aed' },
+    { label: 'Total Cases',       value: total,      icon: FolderOpen,  color: '#fff', iconColor: '#000' },
+    { label: 'Analyses Complete', value: complete,   icon: CheckCircle, color: '#fff', iconColor: '#000' },
+    { label: 'Processing',        value: processing, icon: Clock,       color: '#fff', iconColor: '#000' },
+    { label: 'Images Uploaded',   value: withImage,  icon: ImageIcon,   color: '#fff', iconColor: '#000' },
   ];
 
   return (
@@ -97,8 +98,8 @@ export default function Dashboard() {
       {loadError && (
         <div style={{
           display: 'flex', alignItems: 'center', gap: 10, padding: '14px 18px',
-          background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 12,
-          color: '#dc2626', fontSize: 13.5, marginBottom: 20,
+          background: '#fff', border: '1px solid rgba(0,0,0,0.18)', borderRadius: 12,
+          color: '#000', fontSize: 13.5, marginBottom: 20,
         }}>
           <AlertTriangle size={16} />{loadError}
         </div>
@@ -107,7 +108,7 @@ export default function Dashboard() {
       {/* Stats */}
       {loading
         ? <div className="stats-grid">{[0,1,2,3].map((i) => (
-            <div key={i} className="stat-card" style={{ height: 130, background: '#f1f5f9', borderRadius: 20 }} />
+            <div key={i} className="stat-card" style={{ height: 130, background: 'rgba(0,0,0,0.04)', borderRadius: 20 }} />
           ))}</div>
         : (
           <div className="stats-grid">
@@ -141,7 +142,7 @@ export default function Dashboard() {
           </div>
           <div className="card-body" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
             {total === 0 ? (
-              <div style={{ color: '#94a3b8', fontSize: 13, textAlign: 'center', padding: '20px 0' }}>No cases yet</div>
+              <div style={{ color: '#000', fontSize: 13, textAlign: 'center', padding: '20px 0' }}>No cases yet</div>
             ) : (
               <>
                 <div style={{ height: 140, width: 140 }}>
@@ -152,9 +153,9 @@ export default function Dashboard() {
                     <div key={s.label} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: 12 }}>
                       <span style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
                         <span style={{ width: 9, height: 9, borderRadius: '50%', background: s.color, display: 'inline-block' }} />
-                        <span style={{ color: '#475569' }}>{s.label}</span>
+                        <span style={{ color: '#000' }}>{s.label}</span>
                       </span>
-                      <span style={{ fontWeight: 700, color: '#0f172a' }}>{s.count}</span>
+                      <span style={{ fontWeight: 700, color: '#000' }}>{s.count}</span>
                     </div>
                   ))}
                 </div>
@@ -176,8 +177,8 @@ export default function Dashboard() {
           {/* Unsupported fields notice */}
           <div style={{
             display: 'flex', gap: 7, alignItems: 'flex-start', padding: '8px 12px',
-            background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: 8,
-            fontSize: 12, color: '#6b7280', marginBottom: 12,
+            background: '#fff', border: '1px solid rgba(0,0,0,0.18)', borderRadius: 8,
+            fontSize: 12, color: '#000', marginBottom: 12,
           }}>
             <Info size={12} style={{ flexShrink: 0, marginTop: 1 }} />
             Modality, severity, and confidence are not yet stored by the backend.
@@ -196,18 +197,18 @@ export default function Dashboard() {
               </thead>
               <tbody>
                 {loading
-                  ? <tr><td colSpan={6} style={{ textAlign: 'center', color: '#94a3b8', padding: 32 }}>Loading…</td></tr>
+                  ? <tr><td colSpan={6} style={{ textAlign: 'center', color: '#000', padding: 32 }}>Loading…</td></tr>
                   : recent.length === 0
-                  ? <tr><td colSpan={6} style={{ textAlign: 'center', color: '#94a3b8', padding: 32 }}>No cases yet. <button className="btn btn-ghost btn-sm" onClick={() => navigate('/cases/new')}>Create one →</button></td></tr>
+                  ? <tr><td colSpan={6} style={{ textAlign: 'center', color: '#000', padding: 32 }}>No cases yet. <button className="btn btn-ghost btn-sm" onClick={() => navigate('/cases/new')}>Create one →</button></td></tr>
                   : recent.map((c) => (
                     <tr key={c.id} style={{ cursor: 'pointer' }} onClick={() => navigate(`/cases/${c.id}`)}>
-                      <td><code style={{ fontFamily: 'monospace', fontSize: 13, color: '#1d4ed8' }}>{c.caseCode}</code></td>
-                      <td style={{ color: '#475569', fontSize: 13 }}>{c.studyType}</td>
+                      <td><code style={{ fontFamily: 'monospace', fontSize: 13, color: '#000' }}>{c.caseCode}</code></td>
+                      <td style={{ color: '#000', fontSize: 13 }}>{c.studyType}</td>
                       <td><StatusBadge status={c.status} /></td>
                       <td style={{ textAlign: 'center' }}>
-                        {c.hasImage ? <ImageIcon size={13} style={{ color: '#22c55e' }} /> : <span style={{ color: '#e2e8f0' }}>—</span>}
+                        {c.hasImage ? <ImageIcon size={13} style={{ color: '#000' }} /> : <span style={{ color: '#000' }}>—</span>}
                       </td>
-                      <td style={{ color: '#94a3b8', fontSize: 13 }}>{new Date(c.createdAt).toLocaleDateString()}</td>
+                      <td style={{ color: '#000', fontSize: 13 }}>{new Date(c.createdAt).toLocaleDateString()}</td>
                       <td>
                         <button className="btn btn-ghost btn-sm" onClick={(e) => { e.stopPropagation(); navigate(`/cases/${c.id}`); }}>
                           <ArrowRight size={14} />

@@ -24,7 +24,7 @@ A high-fidelity clinical research console for vascular segmentation, stenosis qu
 ### Tech Stack
 - **Framework**: React 19 + Vite 8
 - **Routing**: React Router DOM v7
-- **Styling**: Tailwind CSS v4 + custom medical theme tokens (glassmorphism, slate/blue clinical palette)
+- **Styling**: Tailwind CSS v4 + custom medical theme tokens (black-and-white palette)
 - **Visualizations**: Chart.js & React-Chartjs-2 (stenosis severity distribution, throughput trends, vessel diameter profile plots)
 - **Icons**: Lucide React
 - **HTTP Client**: Axios (pre-configured with JWT auth interceptors)

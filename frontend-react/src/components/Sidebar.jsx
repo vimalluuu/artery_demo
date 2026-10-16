@@ -92,11 +92,11 @@ export default function Sidebar() {
             </div>
             <div className="user-role">{user?.role || 'Clinician'}</div>
           </div>
-          <ChevronRight size={14} style={{ color: 'rgba(148,163,184,0.5)', flexShrink: 0 }} />
+          <ChevronRight size={14} style={{ color: 'rgba(255,255,255,0.5)', flexShrink: 0 }} />
         </div>
         <button
           className="nav-item"
-          style={{ marginTop: 4, color: '#f87171' }}
+          style={{ marginTop: 4, color: '#fff' }}
           onClick={logout}
         >
           <LogOut size={17} />

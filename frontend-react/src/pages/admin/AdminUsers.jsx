@@ -53,7 +53,7 @@ export default function AdminUsers() {
       </div>
 
       {/* Note: backend enforces roles */}
-      <div className="ai-disclaimer" style={{ marginBottom: 20, background: '#eff6ff', borderColor: '#bfdbfe' }}>
+      <div className="ai-disclaimer" style={{ marginBottom: 20, background: '#fff', borderColor: 'rgba(0,0,0,0.18)' }}>
         <Shield size={15} />
         <span>Role and status changes are saved to the server and revoke sessions for that account. Showing up to 500 accounts.</span>
       </div>
@@ -63,8 +63,8 @@ export default function AdminUsers() {
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 14, marginBottom: 24 }}>
         {ROLES.map((r) => (
           <div key={r} className="stat-card" style={{ padding: '16px 18px' }}>
-            <div style={{ fontSize: 11.5, color: '#94a3b8', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 4 }}>{r}</div>
-            <div style={{ fontSize: 26, fontWeight: 800, color: '#0f172a', letterSpacing: '-1px' }}>
+            <div style={{ fontSize: 11.5, color: '#000', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 4 }}>{r}</div>
+            <div style={{ fontSize: 26, fontWeight: 800, color: '#000', letterSpacing: '-1px' }}>
               {users.filter((u) => u.role === r && u.status === 'Active').length}
             </div>
           </div>
@@ -99,15 +99,15 @@ export default function AdminUsers() {
                       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                         <div style={{
                           width: 32, height: 32, borderRadius: '50%', flexShrink: 0,
-                          background: 'linear-gradient(135deg, #3b82f6, #8b5cf6)',
+                          background: '#000',
                           display: 'grid', placeItems: 'center', color: '#fff', fontSize: 12, fontWeight: 700,
                         }}>
                           {u.name.split(' ').map((n) => n[0]).join('').slice(0, 2)}
                         </div>
-                        <span style={{ fontWeight: 600, color: '#0f172a', fontSize: 13.5 }}>{u.name}</span>
+                        <span style={{ fontWeight: 600, color: '#000', fontSize: 13.5 }}>{u.name}</span>
                       </div>
                     </td>
-                    <td style={{ color: '#64748b', fontSize: 13 }}>{u.email}</td>
+                    <td style={{ color: '#000', fontSize: 13 }}>{u.email}</td>
                     <td>
                       {editId === u.id ? (
                         <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
@@ -166,8 +166,8 @@ export default function AdminUsers() {
           <div className="modal" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
               <div>
-                <div style={{ fontSize: 17, fontWeight: 700, color: '#0f172a' }}>Deactivate user?</div>
-                <div style={{ fontSize: 13, color: '#64748b', marginTop: 4 }}>
+                <div style={{ fontSize: 17, fontWeight: 700, color: '#000' }}>Deactivate user?</div>
+                <div style={{ fontSize: 13, color: '#000', marginTop: 4 }}>
                   <strong>{confirm.name}</strong> will lose access to VascuAI immediately.
                 </div>
               </div>
