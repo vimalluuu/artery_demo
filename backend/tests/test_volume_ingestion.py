@@ -260,6 +260,7 @@ class TestValidateNiftiFile:
         data = np.zeros((4, 4, 4), dtype=np.float32)
         img = nib.Nifti1Image(data, np.eye(4))
         img.header["pixdim"][1] = 200.0  # 200 mm — implausible
+        img.header.set_xyzt_units("mm")
         path = self._write_tmp(img.to_bytes(), ".nii")
         try:
             with pytest.raises(VolumeIngestionError, match="100 mm"):

@@ -57,10 +57,10 @@
  * The UI StatusBadge components expect title-case — this mapping normalises at the adapter boundary.
  */
 const STATUS_MAP = {
-  pending:    'Pending',
-  processing: 'Processing',
-  complete:   'Complete',
-  failed:     'Failed',
+  pending: "Pending",
+  processing: "Processing",
+  complete: "Complete",
+  failed: "Failed",
 };
 
 /**
@@ -71,29 +71,29 @@ const STATUS_MAP = {
 export function toCase(raw) {
   return {
     // ── Supported fields ──────────────────────────────────────────────────
-    id:         raw.id,
-    patientId:  raw.patient_id,
-    caseCode:   raw.case_code,
-    studyType:  raw.study_type,
-    status:     STATUS_MAP[raw.status] ?? raw.status,
-    hasImage:   raw.image_path != null,
+    id: raw.id,
+    patientId: raw.patient_id,
+    caseCode: raw.case_code,
+    studyType: raw.study_type,
+    status: STATUS_MAP[raw.status] ?? raw.status,
+    hasImage: raw.image_path != null,
     // ── Volume fields (added in migration 0004_volume_ingestion) ──────────
-    hasVolume:  raw.volume_path != null,
-    volumePath: raw.volume_path ?? null,  // server-internal relative path
-    createdAt:  raw.created_at,
+    hasVolume: raw.volume_path != null,
+    volumePath: raw.volume_path ?? null, // server-internal relative path
+    createdAt: raw.created_at,
     // ── Metadata fields (persisted since migration 0003_case_meta) ────────
-    modality:   raw.modality   ?? null,
-    region:     raw.region     ?? null,
-    scanDate:   raw.scan_date  ?? null,
-    age:        raw.age_years  ?? null,
-    gender:     raw.sex        ?? null,
-    notes:      raw.notes      ?? null,
+    modality: raw.modality ?? null,
+    region: raw.region ?? null,
+    scanDate: raw.scan_date ?? null,
+    age: raw.age_years ?? null,
+    gender: raw.sex ?? null,
+    notes: raw.notes ?? null,
     // ── Still unsupported (backend does not provide these yet) ────────────
-    severity:   null,
+    severity: null,
     confidence: null,
-    createdBy:  null,
+    createdBy: null,
     riskFactors: [],
-    analyses:    [],   // No inference backend yet — analyses array is always empty
+    analyses: [], // No inference backend yet — analyses array is always empty
   };
 }
 
@@ -108,19 +108,19 @@ export function toCase(raw) {
 export function fromCaseForm(form) {
   const payload = {
     patient_id: parseInt(form.patientId, 10),
-    case_code:  form.caseCode.trim(),
-    study_type: (form.studyType || 'Coronary Artery Analysis').trim(),
+    case_code: form.caseCode.trim(),
+    study_type: (form.studyType || "Coronary Artery Analysis").trim(),
   };
 
   // Optional metadata — only include if non-empty
-  if (form.modality)  payload.modality  = form.modality;
-  if (form.region)    payload.region    = form.region;
-  if (form.scanDate)  payload.scan_date = form.scanDate;  // "YYYY-MM-DD"
-  if (form.age !== '' && form.age != null) {
+  if (form.modality) payload.modality = form.modality;
+  if (form.region) payload.region = form.region;
+  if (form.scanDate) payload.scan_date = form.scanDate; // "YYYY-MM-DD"
+  if (form.age !== "" && form.age != null) {
     const parsed = parseInt(form.age, 10);
     if (!isNaN(parsed)) payload.age_years = parsed;
   }
-  if (form.gender)    payload.sex       = form.gender;    // UI 'gender' → backend 'sex'
+  if (form.gender) payload.sex = form.gender; // UI 'gender' → backend 'sex'
   if (form.notes && form.notes.trim()) payload.notes = form.notes.trim();
 
   return payload;
@@ -132,15 +132,16 @@ export function fromCaseForm(form) {
  */
 export function fromCaseUpdateForm(form) {
   const payload = {};
-  if (form.studyType && form.studyType.trim()) payload.study_type = form.studyType.trim();
-  if (form.modality)  payload.modality  = form.modality;
-  if (form.region)    payload.region    = form.region;
-  if (form.scanDate)  payload.scan_date = form.scanDate;
-  if (form.age !== '' && form.age != null) {
+  if (form.studyType && form.studyType.trim())
+    payload.study_type = form.studyType.trim();
+  if (form.modality) payload.modality = form.modality;
+  if (form.region) payload.region = form.region;
+  if (form.scanDate) payload.scan_date = form.scanDate;
+  if (form.age !== "" && form.age != null) {
     const parsed = parseInt(form.age, 10);
     if (!isNaN(parsed)) payload.age_years = parsed;
   }
-  if (form.gender)  payload.sex   = form.gender;
+  if (form.gender) payload.sex = form.gender;
   if (form.notes && form.notes.trim()) payload.notes = form.notes.trim();
   return payload;
 }
@@ -149,7 +150,7 @@ export function createCasesApi(api) {
   return {
     /** List all cases the current user is authorized to see. */
     async list() {
-      const { data } = await api.get('/cases');
+      const { data } = await api.get("/cases");
       return data.map(toCase);
     },
 
@@ -164,7 +165,7 @@ export function createCasesApi(api) {
      * form: { patientId, caseCode, studyType, modality?, region?, scanDate?, age?, gender?, notes? }
      */
     async create(form) {
-      const { data } = await api.post('/cases', fromCaseForm(form));
+      const { data } = await api.post("/cases", fromCaseForm(form));
       return toCase(data);
     },
 
@@ -188,9 +189,14 @@ export function createCasesApi(api) {
      * formData must be a FormData object with key "file".
      * Returns the updated case.
      */
-    async upload(caseId, formData) {
+    async upload(caseId, formData, onProgress, signal) {
       const { data } = await api.post(`/cases/${caseId}/image`, formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
+        headers: { "Content-Type": "multipart/form-data" },
+        signal,
+        onUploadProgress: (evt) => {
+          if (onProgress && evt.total)
+            onProgress(Math.round((evt.loaded * 100) / evt.total));
+        },
       });
       return toCase(data);
     },
@@ -231,9 +237,10 @@ export function createCasesApi(api) {
      * Accepted extensions: .nii, .nii.gz
      * Returns the updated CaseResponse (with has_volume=true).
      */
-    async uploadVolume(caseId, formData, onProgress) {
+    async uploadVolume(caseId, formData, onProgress, signal) {
       const { data } = await api.post(`/cases/${caseId}/volume`, formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
+        headers: { "Content-Type": "multipart/form-data" },
+        signal,
         onUploadProgress: (evt) => {
           if (onProgress && evt.total) {
             onProgress(Math.round((evt.loaded * 100) / evt.total));

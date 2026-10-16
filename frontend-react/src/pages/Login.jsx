@@ -1,180 +1,108 @@
-import { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
-import { Eye, EyeOff, AlertCircle } from 'lucide-react';
+import { useState } from "react";
+import { Link, Navigate, useLocation, useNavigate } from "react-router-dom";
+import { Eye, EyeOff, ArrowRight, AlertCircle } from "lucide-react";
+import { useAuth } from "../context/AuthContext";
+import AuthLayout from "../components/AuthLayout";
 
 export default function Login() {
-  const { login, sessionError }    = useAuth();
-  const navigate     = useNavigate();
-  const [form, setForm] = useState({ email: '', password: '' });
-  const [showPw, setShowPw] = useState(false);
-  const [error, setError]   = useState('');
-  const [loading, setLoading] = useState(false);
-
-  const handle = (e) => setForm({ ...form, [e.target.name]: e.target.value });
-
-  const submit = async (e) => {
-    e.preventDefault();
-    setError('');
-    setLoading(true);
+  const { login, user, sessionError } = useAuth();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const [form, setForm] = useState({ email: "", password: "" });
+  const [show, setShow] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const destination = location.state?.from
+    ? `${location.state.from.pathname}${location.state.from.search || ""}${location.state.from.hash || ""}`
+    : "/dashboard";
+  if (user) return <Navigate to={destination} replace />;
+  async function submit(event) {
+    event.preventDefault();
+    setBusy(true);
+    setError("");
     try {
-      await login(form.email, form.password);
-      navigate('/dashboard');
+      await login(form.email.trim(), form.password);
+      navigate(destination, {
+        replace: true,
+      });
     } catch (err) {
-      setError(err.message || 'Login failed. Check your credentials.');
+      setError(err.message || "Unable to sign in. Please try again.");
     } finally {
-      setLoading(false);
+      setBusy(false);
     }
-  };
-
+  }
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: 'minmax(300px, 0.9fr) minmax(400px, 1.1fr)', minHeight: '100vh' }}>
-
-      {/* Left brand panel */}
-      <section style={{
-        background: 'linear-gradient(145deg, #0d1b2a 0%, #0f2744 55%, #142e52 100%)',
-        padding: 'clamp(36px,5vw,72px)',
-        display: 'flex', flexDirection: 'column', justifyContent: 'space-between', color: '#fff',
-      }}>
-        {/* Logo */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-          <div style={{
-            width: 48, height: 48, borderRadius: 14,
-            background: 'linear-gradient(135deg, #14b8a6, #3b82f6)',
-            display: 'grid', placeItems: 'center',
-            fontSize: 22, fontWeight: 800, color: '#fff',
-          }}>V</div>
-          <div>
-            <div style={{ fontSize: 22, fontWeight: 800, letterSpacing: '-0.5px' }}>
-              Vascu<span style={{ color: '#5eead4' }}>AI</span>
-            </div>
-            <div style={{ fontSize: 11, color: 'rgba(148,163,184,0.7)' }}>Medical Research Platform</div>
+    <AuthLayout>
+      <div className="page-eyebrow">WELCOME BACK</div>
+      <h2>Good to see you again.</h2>
+      <p>Sign in to continue your research.</p>
+      <form id="login-form" onSubmit={submit}>
+        {(error || sessionError) && (
+          <div className="notice error" role="alert">
+            <AlertCircle size={16} />
+            {error || sessionError}
           </div>
+        )}
+        <div className="form-group">
+          <label htmlFor="email" className="form-label">
+            Email address
+          </label>
+          <input
+            id="email"
+            className="form-input"
+            type="email"
+            placeholder="you@institution.org"
+            required
+            autoComplete="username"
+            value={form.email}
+            onChange={(e) => setForm({ ...form, email: e.target.value })}
+          />
         </div>
-
-        {/* Hero copy */}
-        <div style={{ maxWidth: 440, margin: '40px auto' }}>
-          <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '1.8px', color: '#5eead4', textTransform: 'uppercase', marginBottom: 16 }}>
-            AI-Powered Medical Research
-          </div>
-          <h1 style={{ fontSize: 'clamp(38px,4.5vw,60px)', fontWeight: 800, letterSpacing: '-2.5px', lineHeight: 1.05, margin: '0 0 20px', color: '#fff' }}>
-            See beyond<br />the scan.
-          </h1>
-          <p style={{ color: '#9eb5cc', fontSize: 15, lineHeight: 1.85, margin: 0 }}>
-            Advanced deep learning for artery segmentation and stenosis analysis,
-            designed to support medical imaging research.
-          </p>
-
-          <div style={{ marginTop: 36, display: 'grid', gap: 16 }}>
-            {['AI-assisted artery segmentation', 'Structured stenosis analysis', 'Research-focused model evaluation'].map((f) => (
-              <div key={f} style={{ display: 'flex', alignItems: 'center', gap: 12, color: '#dce8f4', fontSize: 13.5 }}>
-                <div style={{
-                  width: 26, height: 26, borderRadius: '50%',
-                  background: 'rgba(94,234,212,0.12)',
-                  border: '1px solid rgba(94,234,212,0.3)',
-                  display: 'grid', placeItems: 'center',
-                  color: '#5eead4', fontSize: 12, flexShrink: 0,
-                }}>✓</div>
-                {f}
-              </div>
-            ))}
-          </div>
-        </div>
-
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, color: '#7fa3c0', fontSize: 12 }}>
-          <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#5eead4' }} />
-          Academic research prototype — authorised accounts only
-        </div>
-      </section>
-
-      {/* Right login panel */}
-      <section style={{
-        display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-        padding: '48px clamp(24px,5vw,80px) 28px', background: '#f7f9fc',
-      }}>
-        <div style={{ width: '100%', maxWidth: 420 }}>
-
-          <div style={{ marginBottom: 24 }}>
-            <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '1.5px', textTransform: 'uppercase', color: '#2563eb', marginBottom: 10 }}>
-              WELCOME BACK
-            </div>
-            <h2 style={{ fontSize: 'clamp(26px,3vw,34px)', fontWeight: 800, color: '#0f172a', letterSpacing: '-1px', margin: '0 0 8px' }}>
-              Sign in to your workspace
-            </h2>
-            <p style={{ color: '#64748b', fontSize: 14, margin: 0 }}>Enter your research credentials to continue.</p>
-          </div>
-
-          <form id="login-form" onSubmit={submit}>
-            {(error || sessionError) && (
-              <div style={{
-                display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px',
-                background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 10,
-                color: '#dc2626', fontSize: 13, marginBottom: 18,
-              }}>
-                <AlertCircle size={16} />
-                {error || sessionError}
-              </div>
-            )}
-
-            <div className="form-group">
-              <label className="form-label" htmlFor="email">Email address</label>
-              <input
-                id="email" name="email" type="email"
-                className="form-input" placeholder="you@research.med"
-                value={form.email} onChange={handle}
-                autoComplete="username" required
-              />
-            </div>
-
-            <div className="form-group">
-              <label className="form-label" htmlFor="password">Password</label>
-              <div style={{ position: 'relative' }}>
-                <input
-                  id="password" name="password" type={showPw ? 'text' : 'password'}
-                  className="form-input" placeholder="Enter your password"
-                  value={form.password} onChange={handle}
-                  autoComplete="current-password" required
-                  style={{ paddingRight: 46 }}
-                />
-                <button
-                  type="button" aria-label={showPw ? 'Hide password' : 'Show password'}
-                  onClick={() => setShowPw((s) => !s)}
-                  style={{
-                    position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)',
-                    background: 'none', border: 'none', cursor: 'pointer', color: '#64748b', padding: 0,
-                  }}
-                >{showPw ? <EyeOff size={17} /> : <Eye size={17} />}</button>
-              </div>
-            </div>
-
-            <button
-              id="login-submit-btn"
-              type="submit"
-              className="btn btn-primary btn-lg"
-              style={{ width: '100%', justifyContent: 'center', marginTop: 8 }}
-              disabled={loading}
+        <div className="form-group">
+          <div className="flex-between" style={{ marginBottom: 8 }}>
+            <label
+              htmlFor="password"
+              className="form-label"
+              style={{ margin: 0 }}
             >
-              {loading ? 'Signing in…' : 'Sign in →'}
+              Password
+            </label>
+            <Link to="/forgot-password" className="text-xs text-muted">
+              Need help signing in?
+            </Link>
+          </div>
+          <div className="password-field">
+            <input
+              id="password"
+              type={show ? "text" : "password"}
+              className="form-input"
+              required
+              autoComplete="current-password"
+              placeholder="Enter your password"
+              value={form.password}
+              onChange={(e) => setForm({ ...form, password: e.target.value })}
+            />
+            <button
+              type="button"
+              aria-label={show ? "Hide password" : "Show password"}
+              onClick={() => setShow(!show)}
+            >
+              {show ? <EyeOff size={16} /> : <Eye size={16} />}
             </button>
-          </form>
-
-          <p style={{ textAlign: 'center', color: '#64748b', fontSize: 13.5, marginTop: 28 }}>
-            New to VascuAI?{' '}
-            <Link to="/register" style={{ color: '#2563eb', fontWeight: 600 }}>Create an account</Link>
-          </p>
-
-          <p style={{ textAlign: 'center', color: '#94a3b8', fontSize: 11.5, marginTop: 20 }}>
-            ⓘ Use only authorised research accounts. Authentication and case access are logged.
-          </p>
+          </div>
         </div>
-
-        <footer style={{ marginTop: 48, textAlign: 'center', maxWidth: 380 }}>
-          <p style={{ color: '#94a3b8', fontSize: 11, lineHeight: 1.7 }}>
-            AI-generated outputs are for research purposes only and require qualified clinical review.
-          </p>
-          <span style={{ color: '#cbd5e1', fontSize: 10 }}>© 2026 VascuAI · Medical Imaging Research</span>
-        </footer>
-      </section>
-    </div>
+        <button
+          id="login-submit-btn"
+          className="btn btn-primary btn-lg"
+          disabled={busy}
+        >
+          {busy ? "Signing in…" : "Sign in to workspace"}
+          <ArrowRight size={15} />
+        </button>
+      </form>
+      <div className="auth-secondary">
+        New to VascuAI? <Link to="/register">Create an account</Link>
+      </div>
+    </AuthLayout>
   );
 }

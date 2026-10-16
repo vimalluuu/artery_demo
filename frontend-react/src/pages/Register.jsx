@@ -1,132 +1,184 @@
-import { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
-import { Eye, EyeOff, AlertCircle } from 'lucide-react';
-
-const ROLES = ['Clinician', 'Researcher', 'DataScientist'];
+import { useState } from "react";
+import { Link, Navigate, useNavigate } from "react-router-dom";
+import { Eye, EyeOff, ArrowRight, AlertCircle } from "lucide-react";
+import AuthLayout from "../components/AuthLayout";
+import { useAuth } from "../context/AuthContext";
 
 export default function Register() {
-  const { register } = useAuth();
+  const { register, user } = useAuth();
   const navigate = useNavigate();
   const [form, setForm] = useState({
-    name: '', email: '', password: '', confirm: '', role: 'Clinician', institution: '',
+    name: "",
+    email: "",
+    institution: "",
+    role: "Clinician",
+    password: "",
+    confirm: "",
   });
-  const [showPw, setShowPw]     = useState(false);
-  const [error, setError]       = useState('');
-  const [loading, setLoading]   = useState(false);
-
-  const handle = (e) => setForm({ ...form, [e.target.name]: e.target.value });
-
-  const submit = async (e) => {
+  const [show, setShow] = useState(false),
+    [busy, setBusy] = useState(false),
+    [error, setError] = useState("");
+  if (user) return <Navigate to="/dashboard" replace />;
+  const change = (e) => setForm({ ...form, [e.target.name]: e.target.value });
+  const strength = [
+    form.password.length >= 12,
+    form.password.length >= 16,
+    /[a-z]/.test(form.password) && /[A-Z]/.test(form.password),
+    /[^a-zA-Z]/.test(form.password),
+  ].filter(Boolean).length;
+  async function submit(e) {
     e.preventDefault();
-    if (form.password !== form.confirm) { setError('Passwords do not match.'); return; }
-    if (form.password.length < 12) { setError('Password must be at least 12 characters.'); return; }
-    setError(''); setLoading(true);
-    try {
-      await register({ name: form.name, email: form.email, password: form.password, role: form.role, institution: form.institution });
-      navigate('/dashboard');
-    } catch (err) {
-      setError(err.message || 'Registration failed. Please try again.');
-    } finally {
-      setLoading(false);
+    if (form.password !== form.confirm) {
+      setError("Your passwords don’t match.");
+      return;
     }
-  };
-
+    setBusy(true);
+    setError("");
+    try {
+      await register(form);
+      navigate("/dashboard");
+    } catch (err) {
+      setError(err.message || "Unable to create your account.");
+    } finally {
+      setBusy(false);
+    }
+  }
   return (
-    <div style={{
-      minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center',
-      background: 'linear-gradient(135deg, #f0f4f8 0%, #e8f0fe 100%)', padding: '32px 16px',
-    }}>
-      <div style={{ width: '100%', maxWidth: 520 }}>
-        {/* Header */}
-        <div style={{ textAlign: 'center', marginBottom: 32 }}>
-          <div style={{
-            width: 52, height: 52, borderRadius: 15, margin: '0 auto 16px',
-            background: 'linear-gradient(135deg, #14b8a6, #3b82f6)',
-            display: 'grid', placeItems: 'center', fontSize: 24, fontWeight: 800, color: '#fff',
-          }}>V</div>
-          <h1 style={{ fontSize: 28, fontWeight: 800, color: '#0f172a', letterSpacing: '-0.8px', margin: '0 0 6px' }}>
-            Create your account
-          </h1>
-          <p style={{ color: '#64748b', fontSize: 14, margin: 0 }}>Join VascuAI research platform</p>
+    <AuthLayout>
+      <div className="page-eyebrow">A NEW PERSPECTIVE STARTS HERE</div>
+      <h2>Make room for discovery.</h2>
+      <p>Create your research account.</p>
+      <form id="register-form" onSubmit={submit}>
+        {error && (
+          <div className="notice error" role="alert">
+            <AlertCircle size={16} />
+            {error}
+          </div>
+        )}
+        <div className="form-grid">
+          {[
+            ["name", "Full name", "text", "Your name"],
+            ["email", "Email address", "email", "you@institution.org"],
+          ].map(([name, label, type, placeholder]) => (
+            <div className="form-group" key={name}>
+              <label className="form-label" htmlFor={`reg-${name}`}>
+                {label}
+              </label>
+              <input
+                id={`reg-${name}`}
+                name={name}
+                type={type}
+                className="form-input"
+                value={form[name]}
+                onChange={change}
+                placeholder={placeholder}
+                required
+                maxLength={name === "name" ? 120 : 254}
+                autoComplete={name === "name" ? "name" : "email"}
+              />
+            </div>
+          ))}
         </div>
-
-        {/* Card */}
-        <div className="card" style={{ padding: '32px' }}>
-          <form id="register-form" onSubmit={submit}>
-            {error && (
-              <div style={{
-                display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px',
-                background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 10,
-                color: '#dc2626', fontSize: 13, marginBottom: 18,
-              }}>
-                <AlertCircle size={16} />{error}
-              </div>
-            )}
-
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
-              <div className="form-group" style={{ marginBottom: 0 }}>
-                <label className="form-label" htmlFor="name">Full name</label>
-                <input id="name" name="name" type="text" className="form-input"
-                  placeholder="Dr. Jane Smith" value={form.name} onChange={handle} required />
-              </div>
-              <div className="form-group" style={{ marginBottom: 0 }}>
-                <label className="form-label" htmlFor="reg-email">Email</label>
-                <input id="reg-email" name="email" type="email" className="form-input"
-                  placeholder="you@research.med" value={form.email} onChange={handle} required />
-              </div>
-            </div>
-
-            <div className="form-group" style={{ marginTop: 14 }}>
-              <label className="form-label" htmlFor="institution">Institution</label>
-              <input id="institution" name="institution" type="text" className="form-input"
-                placeholder="City Medical Center" value={form.institution} onChange={handle} />
-            </div>
-
-            <div className="form-group">
-              <label className="form-label" htmlFor="role">Role</label>
-              <select id="role" name="role" className="form-select" value={form.role} onChange={handle}>
-                {ROLES.map((r) => <option key={r} value={r}>{r}</option>)}
-              </select>
-              <p className="form-hint">Administrator access can only be assigned by an existing administrator.</p>
-            </div>
-
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
-              <div className="form-group" style={{ marginBottom: 0 }}>
-                <label className="form-label" htmlFor="reg-password">Password</label>
-                <div style={{ position: 'relative' }}>
-                  <input id="reg-password" name="password" type={showPw ? 'text' : 'password'}
-                    className="form-input" placeholder="Min. 12 characters"
-                    value={form.password} onChange={handle} required style={{ paddingRight: 44 }} />
-                  <button type="button" onClick={() => setShowPw((s) => !s)}
-                    style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#64748b' }}>
-                    {showPw ? <EyeOff size={16} /> : <Eye size={16} />}
-                  </button>
-                </div>
-              </div>
-              <div className="form-group" style={{ marginBottom: 0 }}>
-                <label className="form-label" htmlFor="confirm">Confirm password</label>
-                <input id="confirm" name="confirm" type="password" className="form-input"
-                  placeholder="Repeat password" value={form.confirm} onChange={handle} required />
-              </div>
-            </div>
-
-            <div style={{ padding: '12px 14px', background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 10, marginTop: 16, fontSize: 12, color: '#92400e' }}>
-              ⚠ Do not upload real patient-identifiable information. De-identify all data before use.
-            </div>
-
-            <button id="register-submit-btn" type="submit" className="btn btn-primary btn-lg"
-              style={{ width: '100%', justifyContent: 'center', marginTop: 20 }} disabled={loading}>
-              {loading ? 'Creating account…' : 'Create account →'}
+        <div className="form-group">
+          <label className="form-label" htmlFor="institution">
+            Institution <span className="text-muted">(optional)</span>
+          </label>
+          <input
+            id="institution"
+            name="institution"
+            className="form-input"
+            value={form.institution}
+            onChange={change}
+            placeholder="University or research center"
+            maxLength={200}
+          />
+        </div>
+        <div className="form-group">
+          <label className="form-label" htmlFor="role">
+            Your role
+          </label>
+          <select
+            id="role"
+            name="role"
+            className="form-select"
+            value={form.role}
+            onChange={change}
+          >
+            <option value="Clinician">Radiologist / Clinician</option>
+            <option value="Researcher">Medical Researcher</option>
+            <option value="DataScientist">Data Scientist / ML Engineer</option>
+          </select>
+        </div>
+        <div className="form-group">
+          <label className="form-label" htmlFor="reg-password">
+            Password
+          </label>
+          <div className="password-field">
+            <input
+              id="reg-password"
+              name="password"
+              type={show ? "text" : "password"}
+              className="form-input"
+              value={form.password}
+              onChange={change}
+              minLength={12}
+              maxLength={128}
+              required
+              autoComplete="new-password"
+              placeholder="At least 12 characters"
+            />
+            <button
+              type="button"
+              aria-label={show ? "Hide password" : "Show password"}
+              onClick={() => setShow(!show)}
+            >
+              {show ? <EyeOff size={16} /> : <Eye size={16} />}
             </button>
-          </form>
-
-          <p style={{ textAlign: 'center', color: '#64748b', fontSize: 13.5, marginTop: 20 }}>
-            Already have an account?{' '}
-            <Link to="/login" style={{ color: '#2563eb', fontWeight: 600 }}>Sign in</Link>
+          </div>
+          <div className="password-strength" aria-hidden="true">
+            {[1, 2, 3, 4].map((n) => (
+              <span key={n} className={n <= strength ? "filled" : ""} />
+            ))}
+          </div>
+          <p className="form-hint">
+            Use a long, unique password of 12–128 characters.
           </p>
         </div>
+        <div className="form-group">
+          <label htmlFor="confirm" className="form-label">
+            Confirm password
+          </label>
+          <input
+            id="confirm"
+            name="confirm"
+            className="form-input"
+            type="password"
+            value={form.confirm}
+            onChange={change}
+            autoComplete="new-password"
+            required
+            maxLength={128}
+          />
+        </div>
+        <label className="checkbox-row">
+          <input type="checkbox" required />
+          <span>
+            I understand that this is a research prototype and will use only
+            authorized, de-identified data.
+          </span>
+        </label>
+        <button
+          id="register-submit-btn"
+          className="btn btn-primary btn-lg"
+          disabled={busy}
+        >
+          {busy ? "Creating your account…" : "Create account"}
+          <ArrowRight size={15} />
+        </button>
+      </form>
+      <div className="auth-secondary">
+        Already have an account? <Link to="/login">Sign in</Link>
       </div>
-    </div>
+    </AuthLayout>
   );
 }
