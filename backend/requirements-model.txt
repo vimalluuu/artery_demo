@@ -1,0 +1,4 @@
+# Optional inference runtime. CPU installation:
+# python -m pip install -r requirements-model.txt --index-url https://download.pytorch.org/whl/cpu
+# For CUDA, use the appropriate official PyTorch wheel index instead.
+torch==2.14.1

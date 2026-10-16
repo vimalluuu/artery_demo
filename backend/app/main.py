@@ -10,6 +10,7 @@ from app.routers.auth import router as auth_router
 from app.routers.patients import router as patients_router
 from app.routers.cases import router as cases_router
 from app.routers.admin import router as admin_router
+from app.routers.segmentation import router as segmentation_router
 from app.database.session import check_database_connection
 
 
@@ -46,6 +47,7 @@ async def unexpected_error(request: Request, exc: Exception):
 
 
 app.include_router(admin_router, prefix=settings.API_V1_STR)
+app.include_router(segmentation_router, prefix=settings.API_V1_STR)
 
 app.include_router(
     patients_router,

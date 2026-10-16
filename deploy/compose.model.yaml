@@ -1,0 +1,19 @@
+# Optional CPU inference overlay; weights are mounted read-only, never baked in.
+# docker compose -f deploy/compose.yaml -f deploy/compose.model.yaml --env-file deploy/.env ...
+services:
+  api:
+    build:
+      args:
+        INSTALL_MODEL: "true"
+    environment:
+      VASCULAI_MODEL_CHECKPOINT: /models/artery_unet_10case_weighted_step700.pt
+      VASCULAI_MODEL_DEVICE: cpu
+      VASCULAI_MODEL_THRESHOLD: ${VASCULAI_MODEL_THRESHOLD:-0.70}
+      VASCULAI_MODEL_BATCH_SIZE: ${VASCULAI_MODEL_BATCH_SIZE:-1}
+      VASCULAI_MODEL_THREADS: ${VASCULAI_MODEL_THREADS:-4}
+      VASCULAI_MODEL_MAX_VOXELS: ${VASCULAI_MODEL_MAX_VOXELS:-67108864}
+    volumes:
+      - type: bind
+        source: ${MODEL_ARTIFACT_DIR:?Set MODEL_ARTIFACT_DIR to the checkpoint directory}
+        target: /models
+        read_only: true

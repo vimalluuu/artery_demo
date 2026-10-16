@@ -1,6 +1,10 @@
 # Verification before the integrated 3D segmentation milestone
 
-All work remains local on `ui-features`, branched from `main`.
+This is the historical UI checkpoint, subsequently merged through PR #6. Its
+model-prerequisite statements and test counts describe the state before model
+integration. See [the current model verification](model-integration-verification.md)
+and [integration guide](../backend/app/services/segmentation/README.md) for the
+new backend inference capability and measured sample results.
 
 ## Four roles, one verified contract
 

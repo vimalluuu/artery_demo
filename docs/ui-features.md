@@ -1,6 +1,10 @@
 # VascuAI UI implementation
 
-The `ui-features` branch starts from `main`. Work is local; nothing has been pushed.
+The UI milestone was implemented on `ui-features` and merged into `main` through
+PR #6. This document describes the UI milestone. Subsequent backend segmentation
+integration is documented in [the model guide](../backend/app/services/segmentation/README.md)
+and [verification report](model-integration-verification.md); the frontend analysis
+screens still show readiness rather than running the model.
 
 ## Design
 
