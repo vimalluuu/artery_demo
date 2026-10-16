@@ -20,7 +20,10 @@ The interface uses **#222222** and **#FDFFFC**, Lucide icons, responsive navigat
 
 Authentication, patient registration, case management, image/NIfTI ingestion, metadata, user administration, and audit logs use real backend APIs. Dashboard charts derive from persisted cases. Case summaries can be exported as JSON/CSV or printed to PDF through the browser.
 
-Dataset, evaluation, experiment, model, and analysis screens describe current readiness. An optional experimental CT segmentation service now provides backend inference, immutable run records, and protected NIfTI downloads; the frontend does not yet call it. **Stenosis measurements, explainability, 3D viewing, training, and model deployment are not connected.** No illustrative clinical results are presented as real.
+The case Segmentation tab connects to experimental CT inference, server-loaded run history, and protected NIfTI downloads. Dataset, evaluation, experiment and model registry screens still describe readiness. **Stenosis measurements, explainability, 3D viewing, training, and model deployment are not connected.** No illustrative clinical results are presented as real.
+
+See [frontend segmentation integration](docs/frontend-segmentation-ui.md) for the
+workflow, authentication, test results, and synchronous-request limitations.
 
 See [model setup and API contract](backend/app/services/segmentation/README.md) and
 [measured integration results](docs/model-integration-verification.md). The

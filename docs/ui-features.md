@@ -3,8 +3,9 @@
 The UI milestone was implemented on `ui-features` and merged into `main` through
 PR #6. This document describes the UI milestone. Subsequent backend segmentation
 integration is documented in [the model guide](../backend/app/services/segmentation/README.md)
-and [verification report](model-integration-verification.md); the frontend analysis
-screens still show readiness rather than running the model.
+and [verification report](model-integration-verification.md). The case analysis
+screen now connects real runs and protected downloads; see
+[frontend segmentation integration](frontend-segmentation-ui.md).
 
 ## Design
 
@@ -28,7 +29,7 @@ screens still show readiness rather than running the model.
 | Upload center | `/uploads` | Choose a case, validate extension/size, upload image or NIfTI, actual transfer progress, cancellation, retry, replacement acknowledgement |
 | Imaging | `/cases/:id/imaging` | Real source metadata, spatial units, dimensions, affine matrix, honest viewer availability state |
 | Case history | `/cases/:id/history` | Actual case creation and available volume-upload timestamp; no invented image/inference timestamps |
-| Analysis readiness | `/cases/:id/analysis` | Per-case input readiness and requirements for an inference pipeline |
+| Segmentation | `/cases/:id/analysis` | 3D CT eligibility, authorized run action, configurable threshold, actual run history, stale handling and protected downloads |
 | Case exports | `/reports`, `/reports/:id` | Filter case summaries, download JSON/CSV, print or save PDF using the browser |
 | Activity | `/notifications` | Events derived from accessible case creation records and current failure states; per-account read IDs stored on the device |
 | Account | `/profile`, `/settings/security` | Existing profile/password APIs, current account context, logout, supported session guidance |
@@ -38,7 +39,7 @@ screens still show readiness rather than running the model.
 | System health | `/admin/system-health` | On-demand API and database readiness checks; other telemetry is explicitly unknown |
 | Documentation | `/help` | Public/authenticated guide, input formats, permission matrix, methodology, exports, troubleshooting, limitations |
 
-Legacy `/alerts`, `/analysis`, and `/admin/models` routes redirect to their corresponding current screens. Existing `/cases/:id/analysis/:analysisId` links show readiness rather than calling the nonexistent `getAnalysis` API.
+Legacy `/alerts`, `/analysis`, and `/admin/models` routes redirect to their corresponding current screens. Existing `/cases/:id/analysis/:analysisId` links use server segmentation history and highlight a matching run, or explain when the requested run is absent.
 
 ## Research screens and remaining integration
 
@@ -50,7 +51,7 @@ The following blueprint capabilities need additional APIs, model/data artifacts,
 - Password reset email/token flow, device-session listing, and individual remote session revocation.
 - Protected pixel/voxel delivery, a true medical viewer, synchronized slices, 3D rendering, and measurement tools.
 - Volumetric preprocessing jobs and a persistent background processing queue.
-- Segmentation, centerlines, vessel geometry, stenosis localization/severity, calibrated uncertainty, explainability, annotation review, and analysis-version comparison.
+- Centerlines, vessel geometry, stenosis localization/severity, calibrated uncertainty, explainability, annotation review, and analysis-version comparison. The experimental CT segmentation baseline is connected on the case Segmentation tab.
 - Versioned dataset/annotation registries, immutable split manifests, training jobs, checkpoints, model registry/deployment/rollback, and reproducible evaluation runs.
 - Persistent clinical reports, server-rendered PDF documents, report history, protected artifact downloads, and export audit events.
 - A server notification service, remote notification preferences, and operational telemetry beyond API/database checks.

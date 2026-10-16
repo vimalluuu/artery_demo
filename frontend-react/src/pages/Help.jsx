@@ -101,6 +101,14 @@ export default function Help() {
               loading voxel data into the interface.
             </p>
             <p>
+              Open a case’s Segmentation tab to run the experimental 3D CT model.
+              Clinician and Admin accounts can choose a threshold from 0 to 1
+              (default 0.70) and start a synchronous run. All four case-reader
+              roles can refresh saved history and securely download current masks
+              and probability volumes. Stale results cannot be downloaded.
+              Probabilities are not calibrated clinical confidence.
+            </p>
+            <p>
               A protected pixel-serving API and a medical viewer are required
               for axial, coronal, sagittal, and 3D viewing. This deployment
               provides metadata inspection rather than simulated scan images.
@@ -129,8 +137,9 @@ export default function Help() {
             </p>
             <p>
               Dataset registration, train / validation / test manifests, model
-              registry, training jobs, and evaluation runs are not connected. No
-              dataset source, model architecture, or performance is assumed.
+              registry, training jobs, and evaluation runs are not connected.
+              Saved case segmentation runs record their model and input checksums,
+              threshold, preprocessing configuration, and creation time.
             </p>
           </section>
           <section className="help-section" id="exports">
@@ -212,9 +221,12 @@ export default function Help() {
             <details>
               <summary>My case has no analysis results.</summary>
               <p>
-                This deployment does not connect an inference service. A
-                successful upload or a Complete case status is not evidence of
-                an AI result.
+                Open the case Segmentation tab and refresh its server history.
+                A Clinician or Admin can run the experimental model on a compatible
+                3D CT volume when the server is configured. A successful upload or
+                a Complete case status is not evidence of a saved segmentation.
+                If a request times out, refresh history before retrying because
+                server processing may continue.
               </p>
             </details>
             <details>

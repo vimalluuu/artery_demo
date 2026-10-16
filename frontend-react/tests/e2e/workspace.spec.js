@@ -216,10 +216,10 @@ test("case metadata edits are persisted without inventing inference output", asy
     JSON.parse(requests.find((r) => r.method === "PATCH").body).notes,
   ).toBe("Updated research note");
   await page
-    .getByRole("link", { name: "Analysis readiness", exact: true })
+    .getByRole("link", { name: "Segmentation", exact: true })
     .click();
   await expect(
-    page.getByRole("heading", { name: "Inference is not connected yet." }),
+    page.getByRole("heading", { name: "No segmentation runs recorded" }),
   ).toBeVisible();
 });
 test("JSON exports exclude storage paths and clinical claims", async ({

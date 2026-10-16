@@ -125,6 +125,7 @@ export async function installApi(
             uploaded_at: "2026-10-16T10:00:00Z",
           })
         : json({ detail: "No volume" }, 404);
+    if (/^\/cases\/\d+\/segmentations$/.test(path) && method === "GET") return json([]);
     if (path === "/admin/users") return json([user]);
     if (path === "/admin/audit")
       return json([
