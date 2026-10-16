@@ -1,0 +1,19 @@
+# Local handoff bundles are artifacts, never source code.
+/model/
+**/.venv/
+**/venv/
+**/__pycache__/
+**/.pytest_cache/
+**/.coverage
+**/htmlcov/
+**/*.pyc
+**/*.pt
+**/*.pth
+**/*.ckpt
+**/*.onnx
+**/*.nii
+**/*.nii.gz
+# Local environment files and secrets
+**/.env
+**/.env.*
+!**/.env.example

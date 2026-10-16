@@ -47,7 +47,11 @@ Alembic upgrade. `/health` is liveness; `/health/ready` checks DB connectivity;
 5. Verify deployment permissions on tables and generated PostgreSQL sequences;
    use a separate migration role in deployment.
 
-Migrations are forward-only: rollback requires reviewed backup restoration.
+Migrations 0001–0004 are forward-only: rollback requires reviewed backup restoration.
+Migration `0005_segmentation_results` can be downgraded to `0004_volume_ingestion`:
+it drops the segmentation index and table, permanently deleting segmentation
+history. Existing cases, users, uploads and output files are retained. Reapplying
+0005 recreates an empty history table; it does not recover deleted records.
 This task did not operate on an existing application database.
 
 **SQLite to PostgreSQL is a data transfer, not just a URL change.** Create the
@@ -64,6 +68,11 @@ reviewed conversion and credential reset/enrollment procedure. No such database
 was supplied, so no destructive conversion was attempted.
 
 ## Tests
+
+Experimental 3D CT segmentation is documented in
+[the model integration guide](app/services/segmentation/README.md). It uses the
+existing case/volume APIs and an optional PyTorch dependency, with a new additive
+`0005_segmentation_results` migration. It does not provide clinical findings.
 
 ```powershell
 .\.venv\Scripts\python -m pytest -q --cov=app --cov-report=term-missing

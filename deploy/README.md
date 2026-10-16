@@ -1,5 +1,10 @@
 # Deployment reference and routing verification
 
+Optional experimental CPU inference uses `compose.model.yaml` as an overlay.
+See [model setup, artifact mounting, API contract and limits](../backend/app/services/segmentation/README.md).
+The default image still runs ordinary APIs without PyTorch. Review and apply the
+new `0005_segmentation_results` migration before starting an updated backend.
+
 The Vite preview is a local development service. The reference configuration here serves the compiled frontend with nginx and proxies the API and health routes to FastAPI. It does not deploy a trained model.
 
 ## Routing contract

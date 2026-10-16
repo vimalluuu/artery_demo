@@ -52,6 +52,14 @@ class Settings(BaseSettings):
     UPLOAD_DIR: str = "./uploads"
     OUTPUT_DIR: str = "./outputs"
 
+    # Optional model runtime; normal APIs remain available without PyTorch/weights.
+    VASCULAI_MODEL_CHECKPOINT: str | None = None
+    VASCULAI_MODEL_THRESHOLD: float = Field(default=0.70, ge=0, le=1, allow_inf_nan=False)
+    VASCULAI_MODEL_DEVICE: Literal["cpu", "cuda", "auto"] = "cpu"
+    VASCULAI_MODEL_BATCH_SIZE: int = Field(default=1, ge=1, le=16)
+    VASCULAI_MODEL_THREADS: int = Field(default=4, ge=1, le=32)
+    VASCULAI_MODEL_MAX_VOXELS: int = Field(default=67_108_864, ge=1, le=134_217_728)
+
     # ── Volume ingestion limits (configurable via .env) ───────────────────────
     # Maximum *compressed* file size accepted for .nii.gz uploads (upload payload).
     MAX_VOLUME_COMPRESSED_MB: int = Field(default=512, ge=1, le=4096)

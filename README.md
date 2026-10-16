@@ -20,7 +20,14 @@ The interface uses **#222222** and **#FDFFFC**, Lucide icons, responsive navigat
 
 Authentication, patient registration, case management, image/NIfTI ingestion, metadata, user administration, and audit logs use real backend APIs. Dashboard charts derive from persisted cases. Case summaries can be exported as JSON/CSV or printed to PDF through the browser.
 
-Dataset, evaluation, experiment, model, and analysis screens describe current readiness. **Segmentation inference, stenosis measurements, explainability, 3D viewing, training, and model deployment are not connected.** No illustrative clinical results are presented as real.
+Dataset, evaluation, experiment, model, and analysis screens describe current readiness. An optional experimental CT segmentation service now provides backend inference, immutable run records, and protected NIfTI downloads; the frontend does not yet call it. **Stenosis measurements, explainability, 3D viewing, training, and model deployment are not connected.** No illustrative clinical results are presented as real.
+
+See [model setup and API contract](backend/app/services/segmentation/README.md) and
+[measured integration results](docs/model-integration-verification.md). The
+original SmallUNet3D checkpoint loads strictly (85,177 parameters, step 700).
+Weights and sample medical volumes remain local ignored artifacts, outside
+ordinary Git history. Configure `VASCULAI_MODEL_CHECKPOINT` and install the
+optional `backend/requirements-model.txt`; review migration `0005_segmentation_results`.
 
 Read the [UI implementation and remaining capability map](docs/ui-features.md) for the route inventory, data behavior, and blueprint gaps.
 
@@ -28,9 +35,9 @@ See the [pre-milestone verification](docs/pre-milestone-verification.md) for the
 
 ## Roles
 
-- **Clinician:** manage patients, create/edit cases, upload study files, inspect case records.
-- **Researcher:** inspect case records and research readiness screens.
-- **DataScientist:** inspect case records and model/training/evaluation readiness screens.
+- **Clinician:** manage patients, create/edit cases, upload study files, inspect case records, and request experimental CT segmentation through the API.
+- **Researcher:** inspect case records, protected segmentation outputs, and research readiness screens.
+- **DataScientist:** inspect case records, protected segmentation outputs, and model/training/evaluation readiness screens.
 - **Admin:** clinical workflows, user management, audit trail, and system health.
 
 Backend permissions remain authoritative. Public registration cannot grant administrator access. Passwords require 12–128 characters.
