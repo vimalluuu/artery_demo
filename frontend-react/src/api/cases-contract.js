@@ -93,7 +93,7 @@ export function toCase(raw) {
     confidence: null,
     createdBy: null,
     riskFactors: [],
-    analyses: [], // No inference backend yet — analyses array is always empty
+    analyses: [], // CaseResponse has no embedded runs; load /cases/:id/segmentations separately.
   };
 }
 

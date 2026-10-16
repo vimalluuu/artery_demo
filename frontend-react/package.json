@@ -8,7 +8,7 @@
     "build": "vite build",
     "lint": "oxlint",
     "preview": "vite preview",
-    "test": "node --test tests/auth-contract.test.js tests/client.test.js tests/cases-contract.test.js tests/ui-data.test.js tests/health.test.js",
+    "test": "node --test tests/auth-contract.test.js tests/client.test.js tests/cases-contract.test.js tests/ui-data.test.js tests/health.test.js tests/segmentation.test.js",
     "test:e2e": "playwright test"
   },
   "dependencies": {

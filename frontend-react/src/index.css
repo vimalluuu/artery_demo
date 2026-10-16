@@ -2336,6 +2336,35 @@ table.data-table tbody tr:hover {
 }
 
 /* Keep intrinsic table and canvas widths inside responsive grid tracks. */
+.segmentation-input-links,
+.segmentation-downloads,
+.segmentation-record-heading {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.segmentation-input-links { margin: 18px 0; }
+.segmentation-record {
+  min-width: 0;
+  padding: 20px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+}
+.segmentation-record-selected { border-color: var(--ink); }
+.segmentation-record-heading { justify-content: space-between; margin-bottom: 14px; }
+.segmentation-record-heading h3 { font-size: 14px; margin: 0; }
+.segmentation-record .metadata-list dd { overflow-wrap: anywhere; }
+.segmentation-downloads { margin-top: 18px; }
+.segmentation-workspace .form-input { max-width: 240px; }
+.segmentation-workspace .notice { overflow-wrap: anywhere; }
+@media (max-width: 600px) {
+  .segmentation-record { padding: 14px; }
+  .segmentation-record .metadata-list > div { flex-direction: column; gap: 5px; }
+  .segmentation-record .metadata-list dd { max-width: 100%; text-align: left; }
+  .segmentation-downloads .btn { width: 100%; justify-content: center; }
+}
+
 .stack,
 .card,
 .overview-main > *,

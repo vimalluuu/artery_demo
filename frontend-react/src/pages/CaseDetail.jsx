@@ -36,7 +36,7 @@ export function CaseTabs({ id }) {
       {[
         ["", "Overview"],
         ["/imaging", "Imaging & metadata"],
-        ["/analysis", "Analysis readiness"],
+        ["/analysis", "Segmentation"],
         ["/history", "Study history"],
       ].map(([path, label]) => (
         <NavLink
@@ -178,10 +178,10 @@ export default function CaseDetail() {
             </Panel>
           </div>
           <Panel
-            title="Analysis readiness"
+            title="Experimental segmentation"
             action={
               <Link className="text-link" to={`/cases/${id}/analysis`}>
-                Inspect readiness
+                Open segmentation
                 <ArrowUpRight size={13} />
               </Link>
             }
@@ -189,9 +189,9 @@ export default function CaseDetail() {
             <div className="notice" style={{ margin: 0 }}>
               <Layers size={18} />
               <span>
-                Study intake is available. Segmentation, vessel measurements,
-                stenosis detection, and explainability require a connected and
-                validated inference pipeline.
+                Run experimental 3D CT artery segmentation, inspect saved runs,
+                and securely download NIfTI outputs in the segmentation workspace.
+                Stenosis, severity and clinical findings remain unavailable.
               </span>
             </div>
           </Panel>
@@ -250,7 +250,8 @@ export default function CaseDetail() {
           <div className="notice">
             <ShieldCheck size={17} />
             <span>
-              Research use only. No AI result is available for this case.
+              Research use only. Check the segmentation workspace for recorded
+              outputs; a completed case status does not establish a clinical finding.
             </span>
           </div>
         </div>
@@ -466,9 +467,11 @@ export function CaseHistory() {
           <Panel title="Analysis history">
             <EmptyState
               icon={History}
-              title="No inference runs available"
-              description="Model versions, run configuration, and results will require a connected inference service."
-            />
+              title="Segmentation run history"
+              description="Saved segmentation timestamps, model provenance and downloads are available in the segmentation workspace."
+            >
+              <Link className="btn btn-ghost" to={`/cases/${id}/analysis`}>View segmentation history</Link>
+            </EmptyState>
           </Panel>
         </div>
       )}
