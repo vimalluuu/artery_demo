@@ -1,105 +1,152 @@
-import { useNavigate, useLocation } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
+import { NavLink } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
 import {
-  LayoutDashboard, FolderOpen, PlusCircle, BarChart3,
-  FileText, Bell, Settings, Users, LogOut, Cpu, ChevronRight,
-} from 'lucide-react';
+  LayoutDashboard,
+  FolderOpen,
+  Users,
+  ScanLine,
+  FileText,
+  Bell,
+  Settings,
+  LogOut,
+  Cpu,
+  FlaskConical,
+  Database,
+  ChartNoAxesCombined,
+  ShieldCheck,
+  HeartPulse,
+  BookOpen,
+  ChevronRight,
+  X,
+} from "lucide-react";
+import Brand from "./Brand";
+import {
+  CLINICAL_WRITERS,
+  RESEARCH_READERS,
+  ADMINISTRATORS,
+} from "../constants/permissions";
 
-const NAV = [
-  { label: 'Overview', icon: LayoutDashboard, path: '/dashboard' },
-  { label: 'Cases',    icon: FolderOpen,      path: '/cases' },
-  { label: 'New Case', icon: PlusCircle,      path: '/cases/new' },
-  { label: 'Analysis', icon: BarChart3,       path: '/analysis', divider: true },
-  { label: 'Reports',  icon: FileText,        path: '/reports' },
-  { label: 'Alerts',   icon: Bell,            path: '/alerts' },
-];
-
-const ADMIN_NAV = [
-  { label: 'Users',    icon: Users,           path: '/admin/users' },
-  { label: 'Models',   icon: Cpu,             path: '/admin/models' },
-];
-
-export default function Sidebar() {
+export default function Sidebar({ onClose, hidden }) {
   const { user, logout, isRole } = useAuth();
-  const navigate  = useNavigate();
-  const location  = useLocation();
-
-  const go = (path) => navigate(path);
-  const isActive = (path) => location.pathname === path || location.pathname.startsWith(path + '/');
-
+  const groups = [
+    [
+      "WORKSPACE",
+      [
+        ["Overview", "/dashboard", LayoutDashboard],
+        ...(isRole(...CLINICAL_WRITERS)
+          ? [["Patients", "/patients", Users]]
+          : []),
+        ["Cases", "/cases", FolderOpen],
+        ["Upload center", "/uploads", ScanLine],
+        ["Reports & exports", "/reports", FileText],
+        ["Notifications", "/notifications", Bell],
+      ],
+    ],
+    ...(isRole(...RESEARCH_READERS)
+      ? [
+          [
+            "RESEARCH",
+            [
+              ["Datasets", "/datasets", Database],
+              ["Model evaluation", "/evaluation", ChartNoAxesCombined],
+              ["Experiments", "/experiments", FlaskConical],
+              ["Model registry", "/models", Cpu],
+            ],
+          ],
+        ]
+      : []),
+    ...(isRole(...ADMINISTRATORS)
+      ? [
+          [
+            "ADMINISTRATION",
+            [
+              ["User management", "/admin/users", Users],
+              ["Audit trail", "/admin/audit-logs", ShieldCheck],
+              ["System health", "/admin/system-health", HeartPulse],
+            ],
+          ],
+        ]
+      : []),
+  ];
   return (
-    <aside className="sidebar">
-      {/* Brand */}
+    <aside
+      className="sidebar"
+      aria-label="Workspace navigation"
+      aria-hidden={hidden || undefined}
+      inert={hidden ? true : undefined}
+    >
       <div className="sidebar-brand">
-        <div className="sidebar-logo">V</div>
-        <div className="sidebar-brand-text">
-          <div className="brand-name">VascuAI</div>
-          <div className="brand-sub">Research Console</div>
-        </div>
-      </div>
-
-      {/* Navigation */}
-      <nav className="sidebar-nav" aria-label="Main navigation">
-        <div className="nav-section-label">Workspace</div>
-        {NAV.filter((item) => item.path !== '/cases/new' || isRole('Clinician', 'Admin')).map((item) => (
-          <button
-            key={item.path}
-            className={`nav-item${isActive(item.path) ? ' active' : ''}`}
-            onClick={() => go(item.path)}
-            aria-current={isActive(item.path) ? 'page' : undefined}
-          >
-            <item.icon size={17} />
-            {item.label}
-          </button>
-        ))}
-
-        {isRole('Admin', 'DataScientist') && (
-          <>
-            <div className="nav-section-label">Administration</div>
-            {ADMIN_NAV.filter((item) => item.path !== '/admin/users' || isRole('Admin')).map((item) => (
-              <button
-                key={item.path}
-                className={`nav-item${isActive(item.path) ? ' active' : ''}`}
-                onClick={() => go(item.path)}
-                aria-current={isActive(item.path) ? 'page' : undefined}
-              >
-                <item.icon size={17} />
-                {item.label}
-              </button>
-            ))}
-          </>
-        )}
-
-        <div className="nav-section-label">Account</div>
+        <Brand to="/dashboard" />
         <button
-          className={`nav-item${isActive('/profile') ? ' active' : ''}`}
-          onClick={() => go('/profile')}
+          className="icon-btn mobile-only"
+          aria-label="Close navigation"
+          onClick={onClose}
         >
-          <Settings size={17} />
-          Profile &amp; Settings
+          <X size={18} />
         </button>
-      </nav>
-
-      {/* Footer user card */}
-      <div className="sidebar-footer">
-        <div className="sidebar-user" onClick={() => go('/profile')} role="button" tabIndex={0}>
-          <div className="user-avatar">
-            {user?.name?.split(' ').map((n) => n[0]).join('').slice(0, 2) || 'U'}
-          </div>
-          <div className="user-info" style={{ flex: 1, minWidth: 0 }}>
-            <div className="user-name" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-              {user?.name || 'User'}
-            </div>
-            <div className="user-role">{user?.role || 'Clinician'}</div>
-          </div>
-          <ChevronRight size={14} style={{ color: 'rgba(148,163,184,0.5)', flexShrink: 0 }} />
+      </div>
+      <div className="workspace-switch">
+        <span className="workspace-mark">R</span>
+        <div>
+          <strong>Research workspace</strong>
+          <small>{user?.institution || "Personal workspace"}</small>
         </div>
-        <button
-          className="nav-item"
-          style={{ marginTop: 4, color: '#f87171' }}
-          onClick={logout}
-        >
-          <LogOut size={17} />
+        <span className="workspace-tag">BETA</span>
+      </div>
+      <nav className="sidebar-nav">
+        {groups.map(([label, items]) => (
+          <div className="nav-group" key={label}>
+            <div className="nav-section-label">{label}</div>
+            {items.map(([name, path, Icon]) => (
+              <NavLink
+                key={path}
+                to={path}
+                end={path === "/cases"}
+                onClick={onClose}
+                className={({ isActive }) =>
+                  `nav-item${isActive ? " active" : ""}`
+                }
+              >
+                <Icon size={18} strokeWidth={1.7} />
+                <span>{name}</span>
+              </NavLink>
+            ))}
+          </div>
+        ))}
+        <div className="nav-group nav-bottom">
+          <NavLink
+            to="/help"
+            className={({ isActive }) => `nav-item${isActive ? " active" : ""}`}
+          >
+            <BookOpen size={18} />
+            Help & documentation
+          </NavLink>
+          <NavLink
+            to="/profile"
+            className={({ isActive }) => `nav-item${isActive ? " active" : ""}`}
+          >
+            <Settings size={18} />
+            Account settings
+          </NavLink>
+        </div>
+      </nav>
+      <div className="sidebar-footer">
+        <NavLink className="sidebar-user" to="/profile">
+          <span className="user-avatar">
+            {user?.name
+              ?.split(" ")
+              .map((n) => n[0])
+              .join("")
+              .slice(0, 2) || "U"}
+          </span>
+          <span className="user-info">
+            <span className="user-name">{user?.name || "Researcher"}</span>
+            <span className="user-role">{user?.role}</span>
+          </span>
+          <ChevronRight size={15} />
+        </NavLink>
+        <button className="signout-btn" onClick={logout}>
+          <LogOut size={15} />
           Sign out
         </button>
       </div>

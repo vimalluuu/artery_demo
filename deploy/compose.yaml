@@ -1,0 +1,56 @@
+name: vascuai
+services:
+  db:
+    image: postgres:18
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-vascuai}
+      POSTGRES_DB: ${POSTGRES_DB:-vascuai}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set a database password in deploy/.env}
+    volumes:
+      - postgres-data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build:
+      context: ..
+      dockerfile: deploy/backend.Dockerfile
+    restart: unless-stopped
+    environment:
+      SECRET_KEY: ${SECRET_KEY:?Generate a private signing key in deploy/.env}
+      DATABASE_URL: ${DATABASE_URL:?Set the PostgreSQL URL using hostname db in deploy/.env}
+      TESTING: "false"
+      CORS_ORIGINS: ${CORS_ORIGINS:-[]}
+      UPLOAD_DIR: /data/uploads
+      OUTPUT_DIR: /data/outputs
+    volumes:
+      - study-data:/data
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health/ready', timeout=5)"]
+      interval: 15s
+      timeout: 6s
+      start_period: 30s
+      retries: 10
+
+  web:
+    build:
+      context: ..
+      dockerfile: deploy/frontend.Dockerfile
+    restart: unless-stopped
+    # Terminate HTTPS at the host's trusted reverse proxy. No API/DB host ports.
+    ports:
+      - "127.0.0.1:${WEB_PORT:-8080}:8080"
+    depends_on:
+      api:
+        condition: service_healthy
+
+volumes:
+  postgres-data:
+  study-data:

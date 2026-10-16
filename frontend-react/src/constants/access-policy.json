@@ -1,0 +1,13 @@
+{
+  "roles": {
+    "CLINICIAN": "Clinician",
+    "RESEARCHER": "Researcher",
+    "DATA_SCIENTIST": "DataScientist",
+    "ADMIN": "Admin"
+  },
+  "caseReaders": ["Clinician", "Researcher", "DataScientist", "Admin"],
+  "clinicalWriters": ["Clinician", "Admin"],
+  "researchReaders": ["Researcher", "DataScientist", "Admin"],
+  "administrators": ["Admin"],
+  "publicRegistration": ["Clinician", "Researcher", "DataScientist"]
+}

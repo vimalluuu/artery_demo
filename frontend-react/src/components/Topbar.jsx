@@ -1,54 +1,69 @@
-import { useNavigate } from 'react-router-dom';
-import { Bell, Search, Sun, Moon, AlertTriangle } from 'lucide-react';
-import { useState } from 'react';
+import { Link, useNavigate } from "react-router-dom";
+import { Bell, Search, Menu, ArrowUpRight } from "lucide-react";
+import { useState } from "react";
 
-export default function Topbar({ breadcrumbs = [] }) {
+export default function Topbar({ breadcrumbs = [], onMenu }) {
   const navigate = useNavigate();
-  const [dark, setDark] = useState(false);
-
+  const [query, setQuery] = useState("");
   return (
-    <>
-      {/* AI Disclaimer sticky bar */}
-      <div className="ai-disclaimer-bar" role="alert">
-        <AlertTriangle size={13} style={{ display: 'inline', marginRight: 6, verticalAlign: 'middle' }} />
-        AI-assisted research prototype — not a clinical diagnosis tool. All findings require qualified clinical review.
-      </div>
-
-      <header className="topbar">
-        {/* Breadcrumb */}
+    <header className="topbar">
+      <div className="topbar-leading">
+        <button
+          className="icon-btn mobile-only"
+          aria-label="Open navigation"
+          onClick={onMenu}
+        >
+          <Menu size={19} />
+        </button>
         <nav className="topbar-left" aria-label="Breadcrumb">
-          <span style={{ cursor: 'pointer', fontWeight: 600 }} onClick={() => navigate('/dashboard')}>
-            VascuAI
-          </span>
-          {breadcrumbs.map((b, i) => (
-            <span key={i} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <Link to="/dashboard">Workspace</Link>
+          {breadcrumbs.map((item, index) => (
+            <span key={index}>
               <span className="sep">/</span>
-              {b.href
-                ? <span style={{ cursor: 'pointer', color: '#334155' }} onClick={() => navigate(b.href)}>{b.label}</span>
-                : <span style={{ color: '#0f172a', fontWeight: 600 }}>{b.label}</span>
-              }
+              {item.href ? (
+                <Link to={item.href}>{item.label}</Link>
+              ) : (
+                <span
+                  aria-current={
+                    index === breadcrumbs.length - 1 ? "page" : undefined
+                  }
+                >
+                  {item.label}
+                </span>
+              )}
             </span>
           ))}
         </nav>
-
-        {/* Right actions */}
-        <div className="topbar-right">
-          <button className="icon-btn" aria-label="Search" onClick={() => {}}>
-            <Search size={16} />
-          </button>
-          <button className="icon-btn" aria-label="Notifications" onClick={() => navigate('/alerts')}>
-            <Bell size={16} />
-            <span className="badge">3</span>
-          </button>
-          <button
-            className="icon-btn"
-            aria-label="Toggle theme"
-            onClick={() => setDark((d) => !d)}
-          >
-            {dark ? <Sun size={16} /> : <Moon size={16} />}
-          </button>
-        </div>
-      </header>
-    </>
+      </div>
+      <div className="topbar-right">
+        <form
+          className="global-search"
+          onSubmit={(event) => {
+            event.preventDefault();
+            navigate(`/cases?q=${encodeURIComponent(query.trim())}`);
+          }}
+        >
+          <Search size={15} />
+          <input
+            aria-label="Search cases"
+            placeholder="Search cases…"
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+          />
+          <kbd>↵</kbd>
+        </form>
+        <Link to="/help" className="research-label">
+          Research use
+          <ArrowUpRight size={13} />
+        </Link>
+        <Link
+          className="icon-btn"
+          to="/notifications"
+          aria-label="Notifications"
+        >
+          <Bell size={18} />
+        </Link>
+      </div>
+    </header>
   );
 }

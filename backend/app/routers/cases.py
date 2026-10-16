@@ -1,4 +1,6 @@
 
+from datetime import datetime, timezone
+import logging
 from pathlib import Path
 from typing import Annotated
 from uuid import uuid4
@@ -40,6 +42,7 @@ from app.schemas.case import (
 
 
 router = APIRouter(prefix="/cases", tags=["Cases"])
+logger = logging.getLogger(__name__)
 
 MAX_IMAGE_SIZE = 20 * 1024 * 1024
 MAX_IMAGE_DIMENSION = 8192
@@ -436,6 +439,7 @@ def upload_case_volume(
     # ── Stream to a temp file inside VOLUME_DIR ───────────────────────────────
     temporary_path = VOLUME_DIR / f".{uuid4().hex}.upload{extension}"
     saved_path: Path | None = None
+    committed = False
 
     try:
         total_size = 0
@@ -467,6 +471,7 @@ def upload_case_volume(
                 temporary_path,
                 extension,
                 max_uncompressed_bytes=MAX_VOLUME_UNCOMPRESSED,
+                max_voxels=settings.MAX_VOLUME_VOXELS,
             )
         except VolumeIngestionError as exc:
             raise HTTPException(
@@ -512,6 +517,7 @@ def upload_case_volume(
             xyzt_units=props.xyzt_units,
             file_size_bytes=props.file_size_bytes,
             uploader_id=current_user.id,
+            uploaded_at=datetime.now(timezone.utc),
         )
 
         if existing_meta is None:
@@ -520,15 +526,9 @@ def upload_case_volume(
             for key, val in meta_kwargs.items():
                 setattr(existing_meta, key, val)
 
-        try:
-            record_event(db, "case.volume_uploaded", current_user.id, case.id)
-            db.commit()
-            db.refresh(case)
-        except Exception:
-            db.rollback()
-            saved_path.unlink(missing_ok=True)
-            saved_path = None
-            raise
+        record_event(db, "case.volume_uploaded", current_user.id, case.id)
+        db.commit()
+        committed = True
 
         # ── Delete the previous volume file only after commit succeeds ─────────
         if previous_volume_path:
@@ -537,10 +537,19 @@ def upload_case_volume(
                 old_abs != saved_path
                 and old_abs.is_relative_to(VOLUME_DIR)
             ):
-                old_abs.unlink(missing_ok=True)
+                try:
+                    old_abs.unlink(missing_ok=True)
+                except OSError:
+                    logger.warning("An unreferenced previous volume could not be removed.")
 
         return case
 
+    except Exception:
+        if not committed:
+            db.rollback()
+            if saved_path is not None:
+                saved_path.unlink(missing_ok=True)
+        raise
     finally:
         temporary_path.unlink(missing_ok=True)
         file.file.close()

@@ -1,236 +1,374 @@
-import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Bar, Doughnut } from 'react-chartjs-2';
+import { useState } from "react";
+import { Link } from "react-router-dom";
+import { Bar } from "react-chartjs-2";
 import {
-  Chart as ChartJS, CategoryScale, LinearScale, BarElement, ArcElement,
-  Title, Tooltip, Legend,
-} from 'chart.js';
-import { FolderOpen, CheckCircle, Clock, ImageIcon, ArrowRight, AlertTriangle, Info } from 'lucide-react';
-import AppShell from '../components/AppShell';
-import { casesApi } from '../api/cases';
-
-ChartJS.register(CategoryScale, LinearScale, BarElement, ArcElement, Title, Tooltip, Legend);
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  Tooltip,
+  Legend,
+} from "chart.js";
+import {
+  Plus,
+  FolderOpen,
+  ScanLine,
+  Clock3,
+  CircleCheck,
+  ArrowUpRight,
+  ArrowRight,
+  Upload,
+  FileText,
+  Users,
+  FlaskConical,
+  ShieldCheck,
+} from "lucide-react";
+import AppShell from "../components/AppShell";
+import VesselArt from "../components/VesselArt";
+import CaseTable from "../components/CaseTable";
+import {
+  PageHeader,
+  Panel,
+  ErrorState,
+  EmptyState,
+  TextLink,
+} from "../components/ui";
+import { formatDate } from "../lib/format";
+import { useRemote } from "../hooks/useRemote";
+import { casesApi } from "../api/cases";
+import { useAuth } from "../context/AuthContext";
+ChartJS.register(CategoryScale, LinearScale, BarElement, Tooltip, Legend);
 
 export default function Dashboard() {
-  const navigate = useNavigate();
-  const [cases, setCases] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [loadError, setLoadError] = useState('');
-
-  useEffect(() => {
-    casesApi.list()
-      .then((d) => { setCases(d); setLoading(false); })
-      .catch((err) => {
-        setLoading(false);
-        setLoadError(err.response?.status === 403
-          ? 'Your role does not permit viewing cases.'
-          : err.message || 'Failed to load cases.');
-      });
-  }, []);
-
-  const total      = cases.length;
-  const complete   = cases.filter((c) => c.status === 'Complete').length;
-  const processing = cases.filter((c) => c.status === 'Processing').length;
-  const withImage  = cases.filter((c) => c.hasImage).length;
-
-  // Status distribution for doughnut chart (real backend statuses)
-  const statusDist = [
-    { label: 'Complete',   count: complete,                                                            color: '#22c55e' },
-    { label: 'Processing', count: processing,                                                          color: '#3b82f6' },
-    { label: 'Pending',    count: cases.filter((c) => c.status === 'Pending').length,                  color: '#eab308' },
-    { label: 'Failed',     count: cases.filter((c) => c.status === 'Failed').length,                   color: '#ef4444' },
+  const { user, isRole } = useAuth();
+  const { data, loading, error, reload } = useRemote(casesApi.list);
+  const cases = data || [];
+  const [days, setDays] = useState(7);
+  const [today] = useState(() => new Date().toISOString());
+  const recent = [...cases]
+    .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+    .slice(0, 5);
+  const counts = ["Complete", "Processing", "Pending", "Failed"].map(
+    (status) => ({
+      status,
+      count: cases.filter((c) => c.status === status).length,
+    }),
+  );
+  const colors = ["#222222", "#8a9a7b", "#bdc7b0", "#d5c9b8"];
+  const daily = Array.from({ length: days }, (_, i) => {
+    const date = new Date(today);
+    date.setHours(0, 0, 0, 0);
+    date.setDate(date.getDate() - (days - 1 - i));
+    return {
+      date,
+      count: cases.filter((c) => {
+        const created = new Date(c.createdAt);
+        return created >= date && created < new Date(date.getTime() + 86400000);
+      }).length,
+    };
+  });
+  const roleCopy = {
+    Clinician: [
+      "Your studies, at a glance.",
+      "Keep your cases organized and your next steps in focus.",
+    ],
+    Researcher: [
+      "A new day for discovery.",
+      "Explore study activity and prepare your next research question.",
+    ],
+    DataScientist: [
+      "From data to understanding.",
+      "Inspect your study inputs and research pipeline readiness.",
+    ],
+    Admin: [
+      "Your workspace, in view.",
+      "Keep track of case activity, access, and workspace operations.",
+    ],
+  }[user?.role] || ["Your workspace, at a glance.", "Continue your research."];
+  const stats = [
+    [
+      "Total cases",
+      cases.length,
+      FolderOpen,
+      "All registered studies",
+      "/cases",
+    ],
+    [
+      "With study files",
+      cases.filter((c) => c.hasImage || c.hasVolume).length,
+      ScanLine,
+      "Image or volume available",
+      "/uploads",
+    ],
+    [
+      "Awaiting processing",
+      counts[2].count,
+      Clock3,
+      "Pending cases",
+      "/cases?status=Pending",
+    ],
+    [
+      "Cases complete",
+      counts[0].count,
+      CircleCheck,
+      "Reported case status",
+      "/cases?status=Complete",
+    ],
   ];
-
-  const doughnutData = {
-    labels: statusDist.map((s) => s.label),
-    datasets: [{
-      data: statusDist.map((s) => s.count || 0),
-      backgroundColor: statusDist.map((s) => s.color),
-      borderWidth: 0,
-      hoverOffset: 6,
-    }],
-  };
-
-  const recent = [...cases].slice(0, 5);
-
-  const barData = {
-    labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
-    datasets: [{
-      label: 'Cases processed',
-      data: [4, 7, 5, 9, 6, 3, 2],
-      backgroundColor: 'rgba(37,99,235,0.75)',
-      borderRadius: 6,
-      borderSkipped: false,
-    }],
-  };
-
-  const barOptions = {
-    responsive: true, maintainAspectRatio: false,
-    plugins: { legend: { display: false }, tooltip: { backgroundColor: '#1e293b' } },
-    scales: {
-      x: { grid: { display: false }, ticks: { color: '#94a3b8', font: { size: 11 } } },
-      y: { grid: { color: '#f1f5f9' }, ticks: { color: '#94a3b8', font: { size: 11 } }, beginAtZero: true },
-    },
-  };
-
-  const STATS = [
-    { label: 'Total Cases',       value: total,      icon: FolderOpen,  color: '#dbeafe', iconColor: '#2563eb' },
-    { label: 'Analyses Complete', value: complete,   icon: CheckCircle, color: '#dcfce7', iconColor: '#16a34a' },
-    { label: 'Processing',        value: processing, icon: Clock,       color: '#fef9c3', iconColor: '#d97706' },
-    { label: 'Images Uploaded',   value: withImage,  icon: ImageIcon,   color: '#ede9fe', iconColor: '#7c3aed' },
-  ];
-
+  const actions = isRole("Clinician", "Admin")
+    ? [
+        [Plus, "Create a case", "Start a new imaging study", "/cases/new"],
+        [Upload, "Upload a study", "Add files to an existing case", "/uploads"],
+        [Users, "Manage patients", "Open your subject directory", "/patients"],
+      ]
+    : [
+        [
+          FolderOpen,
+          "Explore cases",
+          "Browse available research studies",
+          "/cases",
+        ],
+        [
+          FlaskConical,
+          "Research workspace",
+          "Review evaluation readiness",
+          "/evaluation",
+        ],
+        [
+          FileText,
+          "Export case data",
+          "Download structured records",
+          "/reports",
+        ],
+      ];
   return (
-    <AppShell breadcrumbs={[{ label: 'Dashboard' }]}>
-      {/* Page header */}
-      <div className="page-header" style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
-        <div>
-          <div className="page-eyebrow">Clinical Research</div>
-          <h1 className="page-title">Medical Imaging Dashboard</h1>
-          <p className="page-subtitle">Overview of real persisted case activity.</p>
-        </div>
-        <button className="btn btn-primary" onClick={() => navigate('/cases/new')}>
-          <span>+</span> New Case
-        </button>
-      </div>
-
-      {loadError && (
-        <div style={{
-          display: 'flex', alignItems: 'center', gap: 10, padding: '14px 18px',
-          background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 12,
-          color: '#dc2626', fontSize: 13.5, marginBottom: 20,
-        }}>
-          <AlertTriangle size={16} />{loadError}
-        </div>
-      )}
-
-      {/* Stats */}
-      {loading
-        ? <div className="stats-grid">{[0,1,2,3].map((i) => (
-            <div key={i} className="stat-card" style={{ height: 130, background: '#f1f5f9', borderRadius: 20 }} />
-          ))}</div>
-        : (
-          <div className="stats-grid">
-            {STATS.map(({ label, value, icon: Icon, color, iconColor }) => (
-              <div key={label} className="stat-card">
-                <div className="stat-icon" style={{ background: color }}>
-                  <Icon size={22} style={{ color: iconColor }} />
-                </div>
-                <div className="stat-value">{value}</div>
-                <div className="stat-label">{label}</div>
-              </div>
-            ))}
-          </div>
+    <AppShell breadcrumbs={[{ label: "Overview" }]}>
+      <PageHeader
+        eyebrow={`${user?.role || "Research"} workspace`}
+        title={`Hello, ${user?.name?.split(" ")[0] || "researcher"}.`}
+        description={roleCopy[1]}
+      >
+        {isRole("Clinician", "Admin") && (
+          <Link className="btn btn-primary" to="/cases/new">
+            <Plus size={15} />
+            New case
+          </Link>
         )}
-
-      {/* Charts row */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 320px', gap: 20, marginBottom: 24 }}>
-        <div className="card">
-          <div className="card-header">
-            <h2 className="card-title">Weekly Case Volume</h2>
-            <span className="badge badge-blue">Illustrative — not real data</span>
-          </div>
-          <div className="card-body" style={{ height: 200 }}>
-            <Bar data={barData} options={barOptions} />
-          </div>
+        <Link className="btn btn-ghost" to="/reports">
+          <FileText size={15} />
+          Export center
+        </Link>
+      </PageHeader>
+      <section className="overview-hero">
+        <div>
+          <div className="page-eyebrow">A CLEARER PERSPECTIVE</div>
+          <h2>{roleCopy[0]}</h2>
+          <p>
+            Every study has a story. Bring its files, context, and research
+            records together in one considered workspace.
+          </p>
+          <Link
+            className="btn btn-light"
+            to={isRole("Clinician", "Admin") ? "/uploads" : "/cases"}
+          >
+            {isRole("Clinician", "Admin")
+              ? "Upload a study"
+              : "Explore your cases"}
+            <ArrowRight size={14} />
+          </Link>
         </div>
-
-        <div className="card">
-          <div className="card-header">
-            <h2 className="card-title">Status Distribution</h2>
-          </div>
-          <div className="card-body" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
-            {total === 0 ? (
-              <div style={{ color: '#94a3b8', fontSize: 13, textAlign: 'center', padding: '20px 0' }}>No cases yet</div>
-            ) : (
-              <>
-                <div style={{ height: 140, width: 140 }}>
-                  <Doughnut data={doughnutData} options={{ responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, cutout: '70%' }} />
-                </div>
-                <div style={{ width: '100%', display: 'grid', gap: 6 }}>
-                  {statusDist.map((s) => (
-                    <div key={s.label} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: 12 }}>
-                      <span style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
-                        <span style={{ width: 9, height: 9, borderRadius: '50%', background: s.color, display: 'inline-block' }} />
-                        <span style={{ color: '#475569' }}>{s.label}</span>
-                      </span>
-                      <span style={{ fontWeight: 700, color: '#0f172a' }}>{s.count}</span>
-                    </div>
-                  ))}
-                </div>
-              </>
+        <VesselArt />
+      </section>
+      {error && <ErrorState error={error} retry={reload} />}
+      <div className="stats-grid">
+        {stats.map(([label, value, Icon, foot, path]) => (
+          <Link className="stat-card" key={label} to={path}>
+            <div className="stat-top">
+              <span className="stat-label">{label}</span>
+              <Icon size={17} strokeWidth={1.5} />
+            </div>
+            <div className="stat-value">{loading || error ? "—" : value}</div>
+            <div className="stat-foot">
+              {foot}
+              <ArrowUpRight size={11} />
+            </div>
+          </Link>
+        ))}
+      </div>
+      <div className="overview-main">
+        <div className="stack">
+          <Panel
+            title="Study activity"
+            description="New cases created over time"
+            action={
+              <div className="segmented">
+                {[7, 30].map((n) => (
+                  <button
+                    key={n}
+                    className={days === n ? "selected" : ""}
+                    onClick={() => setDays(n)}
+                  >
+                    {n} days
+                  </button>
+                ))}
+              </div>
+            }
+          >
+            <div className="chart-heading">
+              <span className="stat-value" style={{ fontSize: 27 }}>
+                {loading || error
+                  ? "—"
+                  : daily.reduce((sum, d) => sum + d.count, 0)}{" "}
+                <span
+                  className="text-xs text-muted"
+                  style={{ fontWeight: 400, letterSpacing: 0 }}
+                >
+                  new cases
+                </span>
+              </span>
+              <span className="text-xs text-muted">Created, not processed</span>
+            </div>
+            <div className="chart-wrap">
+              <Bar
+                role="img"
+                aria-label={`New cases created in the last ${days} days: ${daily.reduce((sum, day) => sum + day.count, 0)}. Counts are based on case creation timestamps.`}
+                data={{
+                  labels: daily.map((d) =>
+                    d.date.toLocaleDateString("en", {
+                      month: "short",
+                      day: "numeric",
+                    }),
+                  ),
+                  datasets: [
+                    {
+                      label: "Cases created",
+                      data: daily.map((d) => d.count),
+                      backgroundColor: "#929f83",
+                      hoverBackgroundColor: "#222222",
+                      borderRadius: 3,
+                      maxBarThickness: 30,
+                    },
+                  ],
+                }}
+                options={{
+                  responsive: true,
+                  maintainAspectRatio: false,
+                  plugins: {
+                    legend: { display: false },
+                    tooltip: { backgroundColor: "#222222" },
+                  },
+                  scales: {
+                    x: {
+                      grid: { display: false },
+                      border: { display: false },
+                      ticks: {
+                        color: "#8a9081",
+                        font: { size: 9 },
+                        maxTicksLimit: 7,
+                        maxRotation: 0,
+                      },
+                    },
+                    y: {
+                      beginAtZero: true,
+                      border: { display: false },
+                      ticks: {
+                        precision: 0,
+                        color: "#8a9081",
+                        font: { size: 9 },
+                      },
+                      grid: { color: "#eef0e8" },
+                    },
+                  },
+                }}
+              />
+            </div>
+          </Panel>
+          <Panel
+            title="Recent studies"
+            action={<TextLink to="/cases">View all cases</TextLink>}
+          >
+            <CaseTable cases={recent} loading={loading} />
+          </Panel>
+        </div>
+        <div className="stack">
+          <Panel
+            title="Case status"
+            description="Current persisted workflow states"
+          >
+            <div className="status-track">
+              {counts.map((c, i) => (
+                <span
+                  key={c.status}
+                  style={{
+                    width: `${cases.length ? (c.count / cases.length) * 100 : 0}%`,
+                    background: colors[i],
+                  }}
+                />
+              ))}
+            </div>
+            {counts.map((c, i) => (
+              <Link
+                to={`/cases?status=${c.status}`}
+                className="status-row"
+                key={c.status}
+              >
+                <span
+                  className="status-dot"
+                  style={{ background: colors[i], width: 6, height: 6 }}
+                />
+                <span>{c.status}</span>
+                <strong>{error || loading ? "—" : c.count}</strong>
+              </Link>
+            ))}
+          </Panel>
+          <Panel title="Quick actions">
+            {actions.map(([Icon, title, desc, to]) => (
+              <Link className="quick-action" to={to} key={to}>
+                <Icon size={17} strokeWidth={1.5} />
+                <span>
+                  {title}
+                  <small>{desc}</small>
+                </span>
+                <ArrowUpRight size={14} />
+              </Link>
+            ))}
+            {isRole("Admin") && (
+              <Link to="/admin/system-health" className="quick-action">
+                <ShieldCheck size={17} />
+                <span>Check system health</span>
+                <ArrowUpRight size={14} />
+              </Link>
             )}
-          </div>
+          </Panel>
+          <Panel
+            title="Latest case activity"
+            description="Creation events from available case records"
+          >
+            {!recent.length ? (
+              <EmptyState
+                title="A fresh start"
+                description="Your case activity will appear here."
+              />
+            ) : (
+              recent.slice(0, 3).map((c) => (
+                <Link
+                  to={`/cases/${c.id}`}
+                  key={c.id}
+                  className="activity-item"
+                >
+                  <span className="activity-icon">
+                    <FolderOpen size={14} />
+                  </span>
+                  <div>
+                    <strong>{c.caseCode} created</strong>
+                    <p>{formatDate(c.createdAt, true)}</p>
+                  </div>
+                </Link>
+              ))
+            )}
+          </Panel>
         </div>
       </div>
-
-      {/* Recent cases */}
-      <div className="card">
-        <div className="card-header">
-          <h2 className="card-title">Recent Cases</h2>
-          <button className="btn btn-ghost btn-sm" onClick={() => navigate('/cases')}>
-            View all <ArrowRight size={14} />
-          </button>
-        </div>
-        <div className="card-body" style={{ paddingTop: 0 }}>
-          {/* Unsupported fields notice */}
-          <div style={{
-            display: 'flex', gap: 7, alignItems: 'flex-start', padding: '8px 12px',
-            background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: 8,
-            fontSize: 12, color: '#6b7280', marginBottom: 12,
-          }}>
-            <Info size={12} style={{ flexShrink: 0, marginTop: 1 }} />
-            Modality, severity, and confidence are not yet stored by the backend.
-          </div>
-          <div className="table-wrapper">
-            <table className="data-table">
-              <thead>
-                <tr>
-                  <th>Case Code</th>
-                  <th>Study Type</th>
-                  <th>Status</th>
-                  <th>Image</th>
-                  <th>Created</th>
-                  <th></th>
-                </tr>
-              </thead>
-              <tbody>
-                {loading
-                  ? <tr><td colSpan={6} style={{ textAlign: 'center', color: '#94a3b8', padding: 32 }}>Loading…</td></tr>
-                  : recent.length === 0
-                  ? <tr><td colSpan={6} style={{ textAlign: 'center', color: '#94a3b8', padding: 32 }}>No cases yet. <button className="btn btn-ghost btn-sm" onClick={() => navigate('/cases/new')}>Create one →</button></td></tr>
-                  : recent.map((c) => (
-                    <tr key={c.id} style={{ cursor: 'pointer' }} onClick={() => navigate(`/cases/${c.id}`)}>
-                      <td><code style={{ fontFamily: 'monospace', fontSize: 13, color: '#1d4ed8' }}>{c.caseCode}</code></td>
-                      <td style={{ color: '#475569', fontSize: 13 }}>{c.studyType}</td>
-                      <td><StatusBadge status={c.status} /></td>
-                      <td style={{ textAlign: 'center' }}>
-                        {c.hasImage ? <ImageIcon size={13} style={{ color: '#22c55e' }} /> : <span style={{ color: '#e2e8f0' }}>—</span>}
-                      </td>
-                      <td style={{ color: '#94a3b8', fontSize: 13 }}>{new Date(c.createdAt).toLocaleDateString()}</td>
-                      <td>
-                        <button className="btn btn-ghost btn-sm" onClick={(e) => { e.stopPropagation(); navigate(`/cases/${c.id}`); }}>
-                          <ArrowRight size={14} />
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </div>
-
     </AppShell>
   );
-}
-
-function StatusBadge({ status }) {
-  const map = {
-    Complete:   'badge-green',
-    Processing: 'badge-blue',
-    Pending:    'badge-yellow',
-    Failed:     'badge-red',
-  };
-  return <span className={`badge ${map[status] || 'badge-gray'}`}>{status}</span>;
 }

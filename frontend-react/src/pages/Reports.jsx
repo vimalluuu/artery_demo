@@ -1,140 +1,258 @@
-import { useState } from 'react';
-import { Download, FileText, FileJson, Table2, Eye, Filter } from 'lucide-react';
-import AppShell from '../components/AppShell';
-
-const MOCK_REPORTS = [
-  { id: 'RPT-001', caseId: 'CASE-1043', generatedAt: '2026-10-10T15:00:00Z', model: 'VascuNet v2.1', severity: 'Moderate', format: ['PDF', 'JSON', 'CSV'] },
-  { id: 'RPT-002', caseId: 'CASE-1041', generatedAt: '2026-10-08T11:00:00Z', model: 'VascuNet v2.1', severity: 'Mild',     format: ['PDF', 'JSON'] },
-  { id: 'RPT-003', caseId: 'CASE-1040', generatedAt: '2026-10-07T10:00:00Z', model: 'VascuNet v2.1', severity: 'Severe',   format: ['PDF', 'JSON', 'CSV'] },
-];
-
-const FMT_ICON = { PDF: <FileText size={14} />, JSON: <FileJson size={14} />, CSV: <Table2 size={14} /> };
-const SEV_BADGE = { Normal: 'badge-green', Mild: 'badge-yellow', Moderate: 'badge-orange', Severe: 'badge-red' };
+import { useState } from "react";
+import { Link, useParams } from "react-router-dom";
+import {
+  FileText,
+  Search,
+  Download,
+  ArrowUpRight,
+  Printer,
+  Info,
+} from "lucide-react";
+import AppShell from "../components/AppShell";
+import Brand from "../components/Brand";
+import {
+  PageHeader,
+  Panel,
+  Loading,
+  ErrorState,
+  EmptyState,
+  StatusBadge,
+  Metadata,
+} from "../components/ui";
+import { formatDate } from "../lib/format";
+import { casesApi } from "../api/cases";
+import { useRemote } from "../hooks/useRemote";
+import { useCase } from "../hooks/useCase";
+import { downloadRecords } from "../lib/exports";
 
 export default function Reports() {
-  const [preview, setPreview] = useState(null);
-
-  const fakeDownload = (rptId, fmt) => {
-    alert(`[Demo] Download ${rptId}.${fmt.toLowerCase()} — connect to backend POST /cases/{id}/report?format=${fmt}`);
-  };
-
+  const { data, loading, error, reload } = useRemote(casesApi.list);
+  const [query, setQuery] = useState(""),
+    [status, setStatus] = useState("All");
+  const cases = (data || []).filter(
+    (c) =>
+      c.caseCode.toLowerCase().includes(query.toLowerCase()) &&
+      (status === "All" || status === c.status),
+  );
   return (
-    <AppShell breadcrumbs={[{ label: 'Reports' }]}>
-      <div className="page-header">
-        <div className="page-eyebrow">Output</div>
-        <h1 className="page-title">Reports</h1>
-        <p className="page-subtitle">Download analysis reports in PDF, JSON, or CSV format.</p>
+    <AppShell breadcrumbs={[{ label: "Reports & exports" }]}>
+      <PageHeader
+        eyebrow="RESEARCH RECORDS"
+        title="Put your work in perspective."
+        description="Preview case summaries and export the records you can access."
+      />
+      <div className="notice">
+        <Info size={16} />
+        <span>
+          These exports contain persisted case metadata. AI findings, clinical
+          reports, and analysis measurements are not available in this
+          deployment.
+        </span>
       </div>
-
-      {/* Disclaimer */}
-      <div className="ai-disclaimer" style={{ marginBottom: 24 }}>
-        ⚠ All exported reports must include the disclaimer: "AI-assisted research analysis — not a clinical diagnosis."
+      <div className="filters-bar">
+        <div className="search-bar">
+          <Search size={15} />
+          <input
+            aria-label="Search case summaries"
+            placeholder="Find a case summary…"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+          />
+        </div>
+        <select
+          aria-label="Filter case summaries by status"
+          className="form-select filter-select"
+          value={status}
+          onChange={(e) => setStatus(e.target.value)}
+        >
+          {["All", "Pending", "Processing", "Complete", "Failed"].map((s) => (
+            <option key={s} value={s}>
+              {s === "All" ? "All statuses" : s}
+            </option>
+          ))}
+        </select>
+        <div className="page-actions" style={{ marginLeft: "auto" }}>
+          <button
+            className="btn btn-ghost"
+            disabled={!cases.length}
+            onClick={() => downloadRecords(cases, "csv")}
+          >
+            <Download size={14} />
+            Export CSV
+          </button>
+          <button
+            className="btn btn-ghost"
+            disabled={!cases.length}
+            onClick={() => downloadRecords(cases, "json")}
+          >
+            <Download size={14} />
+            Export JSON
+          </button>
+        </div>
       </div>
-
-      <div style={{ display: 'grid', gridTemplateColumns: preview ? '1fr 420px' : '1fr', gap: 20 }}>
-        <div className="card">
-          <div className="card-header" style={{ paddingBottom: 0 }}>
-            <h2 className="card-title">Generated Reports</h2>
-            <div style={{ display: 'flex', gap: 8 }}>
-              <button className="btn btn-ghost btn-sm"><Filter size={14} /> Filter</button>
-            </div>
-          </div>
-          <div className="card-body" style={{ paddingTop: 8 }}>
+      {error ? (
+        <ErrorState error={error} retry={reload} />
+      ) : (
+        <Panel
+          title="Available case summaries"
+          description="Documents are generated on demand from current case data."
+        >
+          {loading ? (
+            <Loading />
+          ) : !cases.length ? (
+            <EmptyState
+              icon={FileText}
+              title="Your research records belong here"
+              description="Case summaries become available when cases are created."
+            />
+          ) : (
             <div className="table-wrapper">
               <table className="data-table">
                 <thead>
                   <tr>
-                    <th>Report ID</th>
-                    <th>Case</th>
-                    <th>Generated</th>
-                    <th>Model</th>
-                    <th>Severity</th>
-                    <th>Download</th>
-                    <th></th>
+                    <th>Case summary</th>
+                    <th>Study</th>
+                    <th>Case status</th>
+                    <th>Case created</th>
+                    <th>Formats</th>
+                    <th />
                   </tr>
                 </thead>
                 <tbody>
-                  {MOCK_REPORTS.map((r) => (
-                    <tr key={r.id}>
-                      <td><code style={{ fontFamily: 'monospace', fontSize: 12, color: '#1d4ed8' }}>{r.id}</code></td>
-                      <td><code style={{ fontFamily: 'monospace', fontSize: 12 }}>{r.caseId}</code></td>
-                      <td style={{ fontSize: 12.5, color: '#64748b' }}>{new Date(r.generatedAt).toLocaleDateString()}</td>
-                      <td style={{ fontSize: 12.5, color: '#475569' }}>{r.model}</td>
-                      <td><span className={`badge ${SEV_BADGE[r.severity] || 'badge-gray'}`}>{r.severity}</span></td>
+                  {cases.map((c) => (
+                    <tr key={c.id}>
                       <td>
-                        <div style={{ display: 'flex', gap: 6 }}>
-                          {r.format.map((fmt) => (
-                            <button key={fmt} className="btn btn-ghost btn-sm"
-                              id={`download-${r.id}-${fmt.toLowerCase()}-btn`}
-                              onClick={() => fakeDownload(r.id, fmt)}
-                              title={`Download as ${fmt}`}>
-                              {FMT_ICON[fmt]} {fmt}
-                            </button>
-                          ))}
-                        </div>
+                        <Link className="table-title" to={`/reports/${c.id}`}>
+                          <span className="table-file-icon">
+                            <FileText size={16} />
+                          </span>
+                          <strong className="table-code">{c.caseCode}</strong>
+                        </Link>
+                      </td>
+                      <td className="text-muted">
+                        {c.modality || c.studyType}
                       </td>
                       <td>
-                        <button className="btn btn-ghost btn-sm" onClick={() => setPreview(r)}>
-                          <Eye size={14} /> Preview
-                        </button>
+                        <StatusBadge status={c.status} />
+                      </td>
+                      <td className="text-muted">{formatDate(c.createdAt)}</td>
+                      <td className="text-xs">JSON · CSV · Print</td>
+                      <td>
+                        <Link
+                          className="icon-btn"
+                          to={`/reports/${c.id}`}
+                          aria-label={`Preview summary ${c.caseCode}`}
+                        >
+                          <ArrowUpRight size={14} />
+                        </Link>
                       </td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
-          </div>
-        </div>
-
-        {/* Preview panel */}
-        {preview && (
-          <div className="card" style={{ alignSelf: 'start' }}>
-            <div className="card-header">
-              <h2 className="card-title">Preview — {preview.id}</h2>
-              <button className="btn btn-ghost btn-sm" onClick={() => setPreview(null)}>✕ Close</button>
-            </div>
-            <div className="card-body">
-              <div style={{ padding: '20px', background: '#f8fafc', borderRadius: 10, fontSize: 13, lineHeight: 1.7, color: '#334155' }}>
-                <div style={{ textAlign: 'center', marginBottom: 16, padding: '10px', background: '#fff', borderRadius: 8, border: '1px solid #e2e8f0' }}>
-                  <strong style={{ fontSize: 15, color: '#0f172a' }}>VascuAI Analysis Report</strong><br />
-                  <span style={{ fontSize: 11, color: '#64748b' }}>{preview.id} · {preview.caseId}</span>
-                </div>
-
-                <div style={{ padding: '10px 14px', background: '#fef9c3', border: '1px solid #fde68a', borderRadius: 8, fontSize: 11.5, color: '#92400e', marginBottom: 16 }}>
-                  ⚠ <strong>DISCLAIMER:</strong> AI-assisted research analysis. Not a clinical diagnosis. Requires qualified clinical review before any clinical use.
-                </div>
-
-                {[
-                  ['Model',     preview.model],
-                  ['Case ID',   preview.caseId],
-                  ['Date',      new Date(preview.generatedAt).toLocaleString()],
-                  ['Severity',  preview.severity],
-                ].map(([k, v]) => (
-                  <div key={k} style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #f1f5f9', paddingBottom: 6, marginBottom: 6 }}>
-                    <span style={{ color: '#64748b', fontSize: 12 }}>{k}</span>
-                    <span style={{ fontWeight: 600, fontSize: 12 }}>{v}</span>
-                  </div>
-                ))}
-
-                <div style={{ marginTop: 12, fontSize: 12.5 }}>
-                  <div style={{ fontWeight: 700, marginBottom: 6, color: '#0f172a' }}>Findings Summary</div>
-                  <div style={{ color: '#475569' }}>LAD Proximal: 43.8% narrowing — Moderate severity (confidence 91.3%)</div>
-                  <div style={{ color: '#475569', marginTop: 4 }}>RCA Mid: 30.0% narrowing — Mild severity (confidence 88.2%)</div>
-                </div>
-              </div>
-
-              <div style={{ display: 'flex', gap: 8, marginTop: 14 }}>
-                {preview.format.map((fmt) => (
-                  <button key={fmt} className="btn btn-primary btn-sm"
-                    onClick={() => fakeDownload(preview.id, fmt)}>
-                    <Download size={13} /> {fmt}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
+          )}
+        </Panel>
+      )}
+    </AppShell>
+  );
+}
+export function ReportPreview() {
+  const { id } = useParams();
+  const { data: item, loading, error, reload } = useCase();
+  const [preparedAt] = useState(() => new Date().toISOString());
+  return (
+    <AppShell
+      breadcrumbs={[
+        { label: "Reports", href: "/reports" },
+        { label: item?.caseCode || id },
+      ]}
+    >
+      <PageHeader
+        eyebrow="CASE SUMMARY"
+        title={item?.caseCode || "Case summary"}
+        description="A printable snapshot of the current persisted case record."
+      >
+        {item && (
+          <>
+            <button
+              className="btn btn-ghost"
+              onClick={() => downloadRecords([item], "json")}
+            >
+              <Download size={14} />
+              JSON
+            </button>
+            <button
+              className="btn btn-ghost"
+              onClick={() => downloadRecords([item], "csv")}
+            >
+              <Download size={14} />
+              CSV
+            </button>
+            <button className="btn btn-primary" onClick={() => window.print()}>
+              <Printer size={14} />
+              Print / save PDF
+            </button>
+          </>
         )}
-      </div>
+      </PageHeader>
+      {loading ? (
+        <Loading />
+      ) : error ? (
+        <ErrorState error={error} retry={reload} />
+      ) : (
+        <article className="card report-sheet">
+          <div className="report-brand-row">
+            <Brand to="/dashboard" />
+            <span className="badge badge-gray">RESEARCH CASE RECORD</span>
+          </div>
+          <h2>Study summary</h2>
+          <p className="report-reference">
+            {item.caseCode} / Prepared from current case metadata on{" "}
+            {formatDate(preparedAt, true)}
+          </p>
+          <h3>01 / Case & study information</h3>
+          <Metadata
+            items={[
+              ["Case reference", item.caseCode],
+              ["Subject reference", `#${item.patientId}`],
+              ["Study type", item.studyType],
+              ["Modality", item.modality],
+              ["Anatomical region", item.region],
+              ["Scan date", item.scanDate ? formatDate(item.scanDate) : null],
+              ["Case created", formatDate(item.createdAt, true)],
+              ["Case status", item.status],
+            ]}
+          />
+          <h3>02 / Input availability</h3>
+          <Metadata
+            items={[
+              ["2D image", item.hasImage ? "Uploaded" : "Not uploaded"],
+              ["NIfTI volume", item.hasVolume ? "Uploaded" : "Not uploaded"],
+            ]}
+          />
+          <h3>03 / Analysis & review</h3>
+          <div className="notice">
+            No analysis run, model version, segmentation result, calibrated
+            measurement, stenosis classification, or clinical review is
+            available. Case status is a workflow value and does not certify an
+            AI result.
+          </div>
+          <h3>04 / Study notes</h3>
+          <p
+            className="text-sm text-muted"
+            style={{ whiteSpace: "pre-wrap", lineHeight: 1.9 }}
+          >
+            {item.notes || "No study notes recorded."}
+          </p>
+          <div className="divider" />
+          <p className="text-xs text-muted" style={{ lineHeight: 1.9 }}>
+            VascuAI is an AI-assisted research prototype. This document is a
+            case metadata summary, not a diagnostic report. All future findings
+            require qualified review.
+          </p>
+        </article>
+      )}
     </AppShell>
   );
 }
