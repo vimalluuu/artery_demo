@@ -20,6 +20,7 @@ import {
 import {
   toPatient, fromPatientForm, createPatientsApi,
 } from '../src/api/patients-contract.js';
+import { IMAGING_GUIDANCE } from '../src/constants/imaging-guidance.js';
 
 // ─── toCase field mapping ─────────────────────────────────────────────────────
 
@@ -543,4 +544,34 @@ test('casesApi.uploadVolume propagates 413 payload too large', async () => {
   });
   const fd = new FormData();
   await assert.rejects(api.uploadVolume(1, fd), /File exceeds limit/);
+});
+
+// ─── Imaging Format Guidance Contract ────────────────────────────────────────
+
+test('IMAGING_GUIDANCE defines accurate 2D image constraints', () => {
+  assert.equal(IMAGING_GUIDANCE.twoDimensional.maxSizeMb, 20);
+  assert.equal(IMAGING_GUIDANCE.twoDimensional.maxDimensionPx, 8192);
+  assert.ok(IMAGING_GUIDANCE.twoDimensional.formats.includes('PNG'));
+  assert.ok(IMAGING_GUIDANCE.twoDimensional.formats.includes('JPG/JPEG'));
+  assert.ok(IMAGING_GUIDANCE.twoDimensional.formats.includes('TIFF'));
+  assert.match(IMAGING_GUIDANCE.twoDimensional.description, /20 MB/);
+  assert.match(IMAGING_GUIDANCE.twoDimensional.description, /8,192 pixels/);
+});
+
+test('IMAGING_GUIDANCE defines accurate volumetric constraints and limits', () => {
+  assert.equal(IMAGING_GUIDANCE.volumetric.rawLimitMb, 2000, 'raw .nii limit is 2,000 MB');
+  assert.equal(IMAGING_GUIDANCE.volumetric.compressedLimitMb, 512, '.nii.gz limit is 512 MB');
+  assert.equal(IMAGING_GUIDANCE.volumetric.decompressedLimitMb, 2000, 'stream decompression limit is 2,000 MB');
+  assert.deepEqual(IMAGING_GUIDANCE.volumetric.formats, ['.nii', '.nii.gz']);
+  assert.equal(
+    IMAGING_GUIDANCE.volumetric.dropzoneText,
+    '.nii (max 2,000 MB) or .nii.gz (max 512 MB) · 3D / 4D volumes',
+  );
+  assert.match(IMAGING_GUIDANCE.volumetric.metadataDisclaimer, /NIfTI header metadata extraction is supported/);
+  assert.match(IMAGING_GUIDANCE.volumetric.metadataDisclaimer, /segmentation.*inference.*not yet implemented/i);
+});
+
+test('IMAGING_GUIDANCE clearly identifies DICOM as unsupported', () => {
+  assert.match(IMAGING_GUIDANCE.unsupported.dicom.status, /Not yet supported/);
+  assert.match(IMAGING_GUIDANCE.unsupported.dicom.action, /Convert DICOM to NIfTI/);
 });
