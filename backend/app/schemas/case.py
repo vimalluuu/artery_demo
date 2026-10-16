@@ -1,7 +1,7 @@
 from datetime import date, datetime
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 
 # ---------------------------------------------------------------------------
@@ -85,6 +85,16 @@ class CaseResponse(BaseModel):
     sex: str | None = None
     notes: str | None = None
 
+    # Volume field added in 0004_volume_ingestion (null for cases without a volume)
+    volume_path: str | None = None
+    has_volume: bool = False
+
+    @model_validator(mode="after")
+    def _compute_has_volume(self) -> "CaseResponse":
+        """Derive has_volume from volume_path after all fields are populated."""
+        self.has_volume = self.volume_path is not None
+        return self
+
 
 class ImageMetadata(BaseModel):
     case_id: int
@@ -96,3 +106,30 @@ class ImageMetadata(BaseModel):
     channels: int
     pixel_dtype: str
     file_size_bytes: int
+
+
+class VolumeMetadataResponse(BaseModel):
+    """Volume metadata returned by GET /cases/{id}/volume/metadata.
+
+    Contains only spatial and acquisition metadata extracted from the NIfTI
+    header.  No voxel data, no filenames, no PHI.
+    """
+    model_config = ConfigDict(from_attributes=True)
+
+    case_id: int
+    ndim: int
+    shape_x: int           # alias: dim_x
+    shape_y: int           # alias: dim_y
+    shape_z: int           # alias: dim_z
+    shape_t: int | None    # alias: dim_t — None for 3D volumes
+    voxel_spacing_x: float
+    voxel_spacing_y: float
+    voxel_spacing_z: float
+    affine: list[float]    # 16 floats, row-major 4x4
+    voxel_dtype: str
+    nifti_version: int
+    qform_code: int
+    sform_code: int
+    xyzt_units: int
+    file_size_bytes: int
+    uploaded_at: datetime

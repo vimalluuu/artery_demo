@@ -132,6 +132,39 @@ test('toCase does NOT invent values for still-unsupported backend fields', () =>
   assert.deepEqual(c.analyses,    [], 'analyses must be [] — no inference backend');
 });
 
+// ─── toCase: volume fields (migration 0004_volume_ingestion) ──────────────────
+
+test('toCase maps volume fields correctly when volume_path is present', () => {
+  const raw = {
+    id: 1, patient_id: 1, case_code: 'C-VOL', study_type: 'S', status: 'pending',
+    image_path: null, volume_path: 'volumes/abc-123.nii.gz', created_at: '',
+    modality: null, region: null, scan_date: null, age_years: null, sex: null, notes: null,
+  };
+  const c = toCase(raw);
+  assert.equal(c.hasVolume, true, 'hasVolume must be true when volume_path is non-null');
+  assert.equal(c.volumePath, 'volumes/abc-123.nii.gz', 'volumePath must match raw volume_path');
+});
+
+test('toCase maps volume fields correctly when volume_path is null or missing', () => {
+  const rawWithNull = {
+    id: 1, patient_id: 1, case_code: 'C-NOVOL', study_type: 'S', status: 'pending',
+    image_path: null, volume_path: null, created_at: '',
+    modality: null, region: null, scan_date: null, age_years: null, sex: null, notes: null,
+  };
+  const c1 = toCase(rawWithNull);
+  assert.equal(c1.hasVolume, false, 'hasVolume must be false when volume_path is null');
+  assert.equal(c1.volumePath, null, 'volumePath must be null');
+
+  const rawWithoutField = {
+    id: 2, patient_id: 1, case_code: 'C-OLD', study_type: 'S', status: 'pending',
+    image_path: null, created_at: '',
+    modality: null, region: null, scan_date: null, age_years: null, sex: null, notes: null,
+  };
+  const c2 = toCase(rawWithoutField);
+  assert.equal(c2.hasVolume, false, 'hasVolume must be false when volume_path is undefined');
+  assert.equal(c2.volumePath, null, 'volumePath must be null when undefined');
+});
+
 // ─── fromCaseForm payload ─────────────────────────────────────────────────────
 
 test('fromCaseForm sends required fields', () => {
@@ -324,6 +357,86 @@ test('casesApi.getImageMetadata propagates non-404 errors', async () => {
   await assert.rejects(api.getImageMetadata(1), /server error/);
 });
 
+// ─── createCasesApi — uploadVolume ──────────────────────────────────────────
+
+test('casesApi.uploadVolume posts FormData to /cases/{id}/volume with multipart header and maps response', async () => {
+  const calls = [];
+  const raw = {
+    id: 7, patient_id: 2, case_code: 'C-7', study_type: 'S', status: 'pending',
+    image_path: null, volume_path: 'volumes/scan7.nii.gz', created_at: '',
+    modality: null, region: null, scan_date: null, age_years: null, sex: null, notes: null,
+  };
+  const api = createCasesApi({
+    post: async (path, body, opts) => { calls.push({ path, body, opts }); return { data: raw }; },
+  });
+  const fd = new FormData();
+  fd.append('file', new Blob(['test-nii'], { type: 'application/octet-stream' }), 'scan.nii.gz');
+  const updated = await api.uploadVolume(7, fd);
+  assert.equal(calls[0].path, '/cases/7/volume');
+  assert.ok(calls[0].body instanceof FormData, 'body must be FormData');
+  assert.equal(calls[0].opts.headers['Content-Type'], 'multipart/form-data');
+  assert.equal(updated.hasVolume, true);
+  assert.equal(updated.volumePath, 'volumes/scan7.nii.gz');
+});
+
+test('casesApi.uploadVolume passes upload progress to onProgress callback', async () => {
+  let capturedOpts;
+  const raw = {
+    id: 7, patient_id: 2, case_code: 'C-7', study_type: 'S', status: 'pending',
+    image_path: null, volume_path: 'volumes/scan7.nii.gz', created_at: '',
+    modality: null, region: null, scan_date: null, age_years: null, sex: null, notes: null,
+  };
+  const api = createCasesApi({
+    post: async (path, body, opts) => { capturedOpts = opts; return { data: raw }; },
+  });
+  const fd = new FormData();
+  let reportedPct = 0;
+  await api.uploadVolume(7, fd, (pct) => { reportedPct = pct; });
+  assert.ok(typeof capturedOpts.onUploadProgress === 'function', 'onUploadProgress must be configured');
+  capturedOpts.onUploadProgress({ loaded: 50, total: 100 });
+  assert.equal(reportedPct, 50);
+});
+
+// ─── createCasesApi — getVolumeMetadata ──────────────────────────────────────
+
+test('casesApi.getVolumeMetadata returns metadata on 200', async () => {
+  const rawMeta = {
+    case_id: 7,
+    ndim: 3,
+    shape_x: 256, shape_y: 256, shape_z: 128, shape_t: null,
+    voxel_spacing_x: 0.5, voxel_spacing_y: 0.5, voxel_spacing_z: 1.0,
+    affine: [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1],
+    voxel_dtype: 'float32',
+    nifti_version: 1,
+    qform_code: 1, sform_code: 1, xyzt_units: 2,
+    file_size_bytes: 1048576,
+    uploaded_at: '2026-10-16T00:00:00Z',
+  };
+  const api = createCasesApi({
+    get: async (path) => {
+      assert.equal(path, '/cases/7/volume/metadata');
+      return { data: rawMeta };
+    },
+  });
+  const meta = await api.getVolumeMetadata(7);
+  assert.deepEqual(meta, rawMeta);
+});
+
+test('casesApi.getVolumeMetadata returns null on 404', async () => {
+  const api = createCasesApi({
+    get: async () => { const e = new Error('No volume'); e.response = { status: 404 }; throw e; },
+  });
+  const meta = await api.getVolumeMetadata(404);
+  assert.equal(meta, null);
+});
+
+test('casesApi.getVolumeMetadata propagates non-404 errors', async () => {
+  const api = createCasesApi({
+    get: async () => { const e = new Error('Server error'); e.response = { status: 500 }; throw e; },
+  });
+  await assert.rejects(api.getVolumeMetadata(7), /Server error/);
+});
+
 // ─── toPatient field mapping ───────────────────────────────────────────────────
 
 test('toPatient maps backend snake_case to UI camelCase', () => {
@@ -404,4 +517,30 @@ test('casesApi.upload propagates 415 unsupported media type', async () => {
   });
   const fd = new FormData();
   await assert.rejects(api.upload(1, fd), /PNG, JPEG/);
+});
+
+// ─── Volume Error Propagation ────────────────────────────────────────────────
+
+test('casesApi.uploadVolume propagates 403 forbidden', async () => {
+  const api = createCasesApi({
+    post: async () => { const e = new Error('Forbidden'); e.response = { status: 403 }; throw e; },
+  });
+  const fd = new FormData();
+  await assert.rejects(api.uploadVolume(1, fd), /Forbidden/);
+});
+
+test('casesApi.uploadVolume propagates 415 unsupported format', async () => {
+  const api = createCasesApi({
+    post: async () => { const e = new Error('Unsupported format'); e.response = { status: 415 }; throw e; },
+  });
+  const fd = new FormData();
+  await assert.rejects(api.uploadVolume(1, fd), /Unsupported format/);
+});
+
+test('casesApi.uploadVolume propagates 413 payload too large', async () => {
+  const api = createCasesApi({
+    post: async () => { const e = new Error('File exceeds limit'); e.response = { status: 413 }; throw e; },
+  });
+  const fd = new FormData();
+  await assert.rejects(api.uploadVolume(1, fd), /File exceeds limit/);
 });
