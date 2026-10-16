@@ -5,6 +5,7 @@ import AppShell from '../components/AppShell';
 import { patientsApi } from '../api/patients';
 import { casesApi } from '../api/cases';
 import { useAuth } from '../context/AuthContext';
+import { IMAGING_GUIDANCE } from '../constants/imaging-guidance';
 
 /*
  * NewCase — Phase 2 real API integration
@@ -380,7 +381,7 @@ export default function NewCase() {
                 ['1. Select / register patient', 'Link case to a de-identified patient record.'],
                 ['2. Enter case details', 'Assign a unique code, study type, and optional metadata.'],
                 ['3. Create case', 'The case record is saved to the database.'],
-                ['4. Upload scan', 'Upload a PNG/JPEG/TIFF file on the case page.'],
+                ['4. Upload scan or volume', 'Upload a 2D scan (PNG, JPG/JPEG, TIFF) or NIfTI volume (.nii, .nii.gz) on the case page.'],
                 ['5. Await analysis', 'Model inference is not yet available.'],
               ].map(([step, desc]) => (
                 <div key={step} style={{ marginBottom: 14 }}>
@@ -391,14 +392,36 @@ export default function NewCase() {
             </div>
           </div>
 
-          <div className="card" style={{ borderColor: '#fde68a', background: '#fffbeb' }}>
-            <div className="card-body" style={{ display: 'flex', gap: 10, fontSize: 12.5, color: '#92400e' }}>
-              <Info size={16} style={{ flexShrink: 0, marginTop: 1 }} />
+          <div className="card" style={{ borderColor: '#e2e8f0' }}>
+            <div className="card-header" style={{ paddingBottom: 8 }}>
+              <h2 className="card-title" style={{ fontSize: 14 }}>
+                <Info size={15} style={{ display: 'inline', marginRight: 6, verticalAlign: 'middle', color: '#2563eb' }} />
+                Supported Imaging Formats
+              </h2>
+            </div>
+            <div className="card-body" style={{ display: 'flex', flexDirection: 'column', gap: 12, fontSize: 12.5, paddingTop: 4 }}>
               <div>
-                <div style={{ fontWeight: 700, marginBottom: 4 }}>Supported image formats</div>
-                <div>PNG, JPEG, TIFF — up to 20 MB and 8192 px per side.</div>
-                <div style={{ marginTop: 8, fontWeight: 700 }}>DICOM / NIfTI</div>
-                <div>Not yet supported by the backend. Coming in a future update.</div>
+                <div style={{ fontWeight: 700, color: '#0f172a' }}>2D Image Uploads</div>
+                <div style={{ color: '#64748b', marginTop: 2 }}>
+                  {IMAGING_GUIDANCE.twoDimensional.description}
+                </div>
+              </div>
+
+              <div>
+                <div style={{ fontWeight: 700, color: '#7c3aed' }}>Volumetric Uploads (NIfTI)</div>
+                <div style={{ color: '#64748b', marginTop: 2 }}>
+                  {IMAGING_GUIDANCE.volumetric.description}
+                </div>
+                <div style={{ fontSize: 11.5, color: '#64748b', marginTop: 3 }}>
+                  {IMAGING_GUIDANCE.volumetric.metadataDisclaimer}
+                </div>
+              </div>
+
+              <div style={{ padding: '8px 10px', background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 8, color: '#92400e' }}>
+                <div style={{ fontWeight: 700 }}>DICOM</div>
+                <div style={{ marginTop: 2 }}>
+                  {IMAGING_GUIDANCE.unsupported.dicom.status} {IMAGING_GUIDANCE.unsupported.dicom.action}
+                </div>
               </div>
             </div>
           </div>
@@ -408,7 +431,7 @@ export default function NewCase() {
               <div className="card-body" style={{ fontSize: 12.5, color: '#1e40af' }}>
                 <div style={{ fontWeight: 700, marginBottom: 4 }}>Your role: {user.role}</div>
                 {user.role === 'Clinician' || user.role === 'Admin'
-                  ? <div>You can create patients, create cases, and upload images.</div>
+                  ? <div>You can create patients, create cases, and upload 2D scans and NIfTI volumes.</div>
                   : <div>Your role cannot create patients or cases. Contact an Admin or Clinician.</div>}
               </div>
             </div>

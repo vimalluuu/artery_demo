@@ -4,6 +4,7 @@ import { Upload, History, CheckCircle, Loader, AlertTriangle, X, ImageIcon, Info
 import AppShell from '../components/AppShell';
 import { casesApi } from '../api/cases';
 import { useAuth } from '../context/AuthContext';
+import { IMAGING_GUIDANCE } from '../constants/imaging-guidance';
 
 /*
  * CaseDetail — Phase 2 real API integration
@@ -13,7 +14,7 @@ import { useAuth } from '../context/AuthContext';
  *
  * Image upload:
  *   POST /cases/:id/image   multipart FormData { file }   → updated CaseResponse
- *   Allowed formats: .png .jpg .jpeg .tif .tiff  (not DICOM/NIfTI — backend 415)
+ *   Allowed 2D formats: .png .jpg .jpeg .tif .tiff (for NIfTI .nii/.nii.gz use POST /cases/:id/volume)
  *   Max size: 20 MB. Max dimension: 8192 px.
  *
  * RBAC:
@@ -431,7 +432,7 @@ export default function CaseDetail() {
               <h2 className="card-title">
                 <Upload size={17} style={{ display: 'inline', marginRight: 8, verticalAlign: 'middle', color: '#7c3aed' }} />
                 Volume Upload
-                <span style={{ marginLeft: 10, fontSize: 11, color: '#94a3b8', fontWeight: 400 }}>NIfTI · upload &amp; metadata only — no inference</span>
+                <span style={{ marginLeft: 10, fontSize: 11, color: '#94a3b8', fontWeight: 400 }}>{IMAGING_GUIDANCE.volumetric.headerBadgeText}</span>
               </h2>
             </div>
             <div className="card-body">
@@ -441,6 +442,12 @@ export default function CaseDetail() {
                   Volume upload requires Clinician or Admin role.
                 </div>
               )}
+              <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start', padding: '10px 14px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 10, fontSize: 12.5, color: '#475569', marginBottom: 16 }}>
+                <Info size={14} style={{ flexShrink: 0, marginTop: 2, color: '#7c3aed' }} />
+                <div>
+                  <strong>NIfTI Volume Ingestion:</strong> {IMAGING_GUIDANCE.volumetric.metadataDisclaimer}
+                </div>
+              </div>
               <div
                 id="volume-dropzone"
                 style={{
@@ -480,7 +487,7 @@ export default function CaseDetail() {
                     <div style={{ fontWeight: 600, color: '#334155', marginBottom: 4 }}>
                       {canWrite ? 'Drop NIfTI file or click to browse' : 'Upload not permitted for your role'}
                     </div>
-                    <div style={{ fontSize: 12.5, color: '#64748b' }}>.nii or .nii.gz · Max 512 MB · 3D / 4D volumes</div>
+                    <div style={{ fontSize: 12.5, color: '#64748b' }}>{IMAGING_GUIDANCE.volumetric.dropzoneText}</div>
                   </div>
                 )}
               </div>
@@ -597,6 +604,7 @@ export default function CaseDetail() {
               { label: 'Created',      value: new Date(caseData.createdAt).toLocaleString() },
               { label: 'Status',       value: <StatusBadge status={caseData.status} /> },
               { label: 'Image',        value: caseData.hasImage ? '✓ Uploaded' : '— Not yet uploaded' },
+              { label: 'Volume',       value: caseData.hasVolume ? '✓ Uploaded' : '— Not yet uploaded' },
             ].map(({ label, value }) => (
               <div key={label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', paddingBottom: 12, marginBottom: 12, borderBottom: '1px solid #f8fafc' }}>
                 <span style={{ fontSize: 12.5, color: '#64748b', fontWeight: 500 }}>{label}</span>
