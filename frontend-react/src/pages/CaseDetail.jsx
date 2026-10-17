@@ -29,6 +29,11 @@ import { useCase } from "../hooks/useCase";
 import { casesApi } from "../api/cases";
 import { useAuth } from "../context/AuthContext";
 import { MODALITIES, REGIONS } from "../constants/case-options";
+import {
+  canEditCaseMetadata,
+  createCaseMetadataForm,
+  validateCaseMetadata,
+} from "./case-detail-utils";
 
 export function CaseTabs({ id }) {
   return (
@@ -53,10 +58,11 @@ export function CaseTabs({ id }) {
 }
 export default function CaseDetail() {
   const { id } = useParams();
-  const { isRole } = useAuth();
+  const { user } = useAuth();
   const { data: item, loading, error, reload } = useCase();
   const [editing, setEditing] = useState(false);
   const [uploadSaved, setUploadSaved] = useState(false);
+  const [metadataSaved, setMetadataSaved] = useState(false);
   const metadataLoader = useCallback(async () => {
     const result = await Promise.allSettled([
       casesApi.getImageMetadata(id),
@@ -108,6 +114,11 @@ export default function CaseDetail() {
       {uploadSaved && (
         <div className="notice success" role="status">
           Study upload accepted. The recorded metadata has been refreshed.
+        </div>
+      )}
+      {metadataSaved && (
+        <div className="notice success" role="status">
+          Case metadata saved successfully.
         </div>
       )}
       <div className="two-column">
@@ -200,13 +211,17 @@ export default function CaseDetail() {
           <Panel
             title="Case record"
             action={
-              isRole("Clinician", "Admin") && (
+              canEditCaseMetadata(user?.role) && (
                 <button
-                  className="icon-btn"
-                  aria-label="Edit case metadata"
-                  onClick={() => setEditing(!editing)}
+                  className="btn btn-ghost"
+                  type="button"
+                  onClick={() => {
+                    setMetadataSaved(false);
+                    setEditing(!editing);
+                  }}
                 >
                   <Pencil size={14} />
+                  Edit Metadata
                 </button>
               )
             }
@@ -216,6 +231,7 @@ export default function CaseDetail() {
                 item={item}
                 onSaved={() => {
                   setEditing(false);
+                  setMetadataSaved(true);
                   reload();
                 }}
                 onCancel={() => setEditing(false)}
@@ -260,19 +276,16 @@ export default function CaseDetail() {
   );
 }
 function CaseEdit({ item, onSaved, onCancel }) {
-  const [form, setForm] = useState({
-    studyType: item.studyType,
-    modality: item.modality || "",
-    region: item.region || "",
-    scanDate: item.scanDate || "",
-    age: item.age ?? "",
-    gender: item.gender || "",
-    notes: item.notes || "",
-  });
+  const [form, setForm] = useState(() => createCaseMetadataForm(item));
   const [busy, setBusy] = useState(false),
     [error, setError] = useState("");
   async function submit(e) {
     e.preventDefault();
+    const validationError = validateCaseMetadata(form);
+    if (validationError) {
+      setError(validationError);
+      return;
+    }
     if (
       ["modality", "region", "scanDate", "age", "gender", "notes"].some(
         (key) =>
@@ -292,7 +305,11 @@ function CaseEdit({ item, onSaved, onCancel }) {
       await casesApi.update(item.id, form);
       onSaved();
     } catch (err) {
-      setError(err.message);
+      setError(
+        err?.response?.data?.detail ||
+          err?.message ||
+          "Unable to save case metadata. Please try again.",
+      );
     } finally {
       setBusy(false);
     }
