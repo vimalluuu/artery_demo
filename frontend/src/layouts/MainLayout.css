@@ -1,0 +1,119 @@
+
+.vascuai-layout {
+  display: flex;
+  min-height: 100vh;
+  background: #f4f7fa;
+  color: #16324f;
+  font-family: Inter, system-ui, sans-serif;
+}
+
+.vascuai-sidebar {
+  display: flex;
+  flex: 0 0 250px;
+  flex-direction: column;
+  padding: 24px 16px;
+  background: #16324f;
+  color: #fff;
+}
+
+.vascuai-brand {
+  margin: 0 0 36px;
+  font-size: 1.6rem;
+}
+
+.vascuai-sidebar-label {
+  margin: 0 12px 12px;
+  color: #b7c7d8;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+}
+.vascuai-sidebar nav {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.vascuai-nav-item {
+  width: 100%;
+  padding: 12px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: #e3edf5;
+  cursor: pointer;
+  font: inherit;
+  text-align: left;
+  display: block;
+line-height: 1.4;
+}
+
+.vascuai-nav-item:hover,
+.vascuai-nav-item.active {
+  background: #176b87;
+  color: #fff;
+}
+
+.vascuai-sidebar-footer {
+  margin-top: auto;
+  padding: 20px 8px 0;
+  color: #b7c7d8;
+  font-size: 0.75rem;
+  line-height: 1.5;
+}
+
+.vascuai-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.vascuai-topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 18px 28px;
+  border-bottom: 1px solid #d6e0e8;
+  background: #fff;
+  font-size: 0.9rem;
+}
+
+.vascuai-user-label {
+  color: #607080;
+}
+
+.vascuai-content {
+  min-width: 0;
+}
+
+.vascuai-content .evaluation-dashboard {
+  max-width: 1200px;
+}
+
+@media (max-width: 760px) {
+  .vascuai-layout {
+    flex-direction: column;
+  }
+
+  .vascuai-sidebar {
+    flex-basis: auto;
+    padding: 16px;
+  }
+
+  .vascuai-brand {
+    margin-bottom: 16px;
+  }
+
+  .vascuai-sidebar nav {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .vascuai-sidebar-footer {
+    margin-top: 16px;
+  }
+
+  .vascuai-topbar {
+    padding: 16px;
+  }
+}

@@ -1,0 +1,244 @@
+
+.evaluation-dashboard {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 32px;
+  color: #16324f;
+  background: #f4f7fa;
+  font-family: Inter, system-ui, sans-serif;
+}
+
+.evaluation-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 20px;
+}
+
+.evaluation-eyebrow {
+  color: #176b87;
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.evaluation-header h1 {
+  margin: 8px 0;
+  font-size: clamp(1.7rem, 3vw, 2.2rem);
+}
+
+.evaluation-subtitle,
+.evaluation-note,
+.evaluation-footer {
+  color: #607080;
+  line-height: 1.6;
+}
+
+.evaluation-status-badge {
+  padding: 8px 12px;
+  border-radius: 999px;
+  background: #eaf4f5;
+  color: #155d66;
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+.evaluation-warning {
+  margin: 24px 0;
+  padding: 16px 18px;
+  border: 1px solid #e7c76a;
+  border-left: 5px solid #c38b17;
+  border-radius: 8px;
+  background: #fff9e9;
+}
+
+.evaluation-warning p {
+  margin-bottom: 0;
+  color: #604b20;
+  line-height: 1.6;
+}
+
+.evaluation-section h2 {
+  margin: 28px 0 16px;
+  font-size: 1.3rem;
+}
+
+.evaluation-run,
+.evaluation-message,
+.evaluation-comparison {
+  margin: 16px 0;
+  padding: 20px;
+  border: 1px solid #d6e0e8;
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: 0 2px 8px rgb(22 50 79 / 4%);
+}
+
+.evaluation-identity {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+  margin: 0;
+  padding-bottom: 20px;
+  border-bottom: 1px solid #d6e0e8;
+}
+
+.evaluation-identity dt {
+  color: #607080;
+  font-size: 0.82rem;
+}
+
+.evaluation-identity dd {
+  margin: 6px 0 0;
+  font-weight: 650;
+  overflow-wrap: anywhere;
+}
+
+.evaluation-run__heading {
+  margin: 22px 0 12px;
+  font-size: 1rem;
+}
+
+.evaluation-metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.evaluation-metrics-grid--boundary {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.evaluation-metric {
+  min-width: 0;
+  padding: 16px;
+  border: 1px solid #d6e0e8;
+  border-radius: 8px;
+  background: #fbfdff;
+}
+
+.evaluation-metric h3 {
+  margin: 0;
+  color: #607080;
+  font-size: 0.82rem;
+  font-weight: 600;
+  line-height: 1.5;
+}
+
+.evaluation-metric__value {
+  margin: 12px 0 0;
+  font-size: clamp(1rem, 1.7vw, 1.45rem);
+  font-weight: 750;
+  overflow-wrap: anywhere;
+}
+
+.evaluation-message {
+  padding: 24px;
+}
+
+.evaluation-message h3 {
+  margin-top: 0;
+}
+
+.evaluation-message--error {
+  border-color: #e3aaaa;
+  color: #9b2929;
+}
+
+.evaluation-spinner {
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  border: 3px solid #d6e0e8;
+  border-top-color: #176b87;
+  border-radius: 50%;
+  animation: evaluation-spin 0.8s linear infinite;
+}
+
+@keyframes evaluation-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.evaluation-table-wrapper {
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+.evaluation-table-wrapper table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+.evaluation-table-wrapper caption {
+  padding: 12px 0;
+  color: #607080;
+  text-align: left;
+}
+
+.evaluation-table-wrapper th,
+.evaluation-table-wrapper td {
+  padding: 12px;
+  border-bottom: 1px solid #d6e0e8;
+  vertical-align: top;
+}
+
+.evaluation-table-wrapper th {
+  font-size: 0.85rem;
+}
+
+.evaluation-table-wrapper td {
+  white-space: nowrap;
+}
+
+.evaluation-table-wrapper small {
+  color: #607080;
+}
+
+.evaluation-footer {
+  margin-top: 28px;
+  padding-top: 16px;
+  border-top: 1px solid #d6e0e8;
+  font-size: 0.85rem;
+}
+
+@media (max-width: 800px) {
+  .evaluation-dashboard {
+    padding: 20px;
+  }
+
+  .evaluation-metrics-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .evaluation-identity {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 420px) {
+  .evaluation-dashboard {
+    padding: 12px;
+  }
+
+  .evaluation-run,
+  .evaluation-message,
+  .evaluation-comparison {
+    padding: 14px;
+  }
+
+  .evaluation-metrics-grid,
+  .evaluation-metrics-grid--boundary {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .evaluation-spinner {
+    animation: none;
+  }
+}
