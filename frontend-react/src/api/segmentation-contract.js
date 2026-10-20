@@ -16,8 +16,8 @@ function casePath(id) {
 export function createSegmentationApi(api) {
   const activeRuns = new Set();
   return {
-    async list(caseId) {
-      const { data } = await api.get(casePath(caseId));
+    async list(caseId, { signal } = {}) {
+      const { data } = await api.get(casePath(caseId), signal ? { signal } : undefined);
       if (!Array.isArray(data)) throw new Error("Unexpected segmentation history response.");
       return data;
     },
@@ -56,6 +56,38 @@ export function createSegmentationApi(api) {
         }
         throw error;
       }
+    },
+    async loadVolume(caseId, resultId, artifact, { signal, onProgress } = {}) {
+      if (!["source", "mask"].includes(artifact) || !/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i.test(resultId)) throw new Error("Invalid viewer artifact.");
+      const limit = 512 * 1024 * 1024;
+      const bounded = new AbortController();
+      const cancel = () => bounded.abort();
+      signal?.addEventListener("abort", cancel, { once: true });
+      if (signal?.aborted) cancel();
+      let exceeded = false;
+      try {
+        const response = await api.get(`${casePath(caseId)}/${resultId}/${artifact}`, {
+          responseType: "arraybuffer", signal: bounded.signal,
+          headers: { Accept: "application/gzip, application/octet-stream" },
+          onDownloadProgress: event => {
+            if (event.loaded > limit || event.total > limit) { exceeded = true; bounded.abort(); return; }
+            onProgress?.({ loaded: event.loaded, total: event.total || null });
+          },
+        });
+        if (bounded.signal.aborted) throw new DOMException("Viewer request cancelled.", "AbortError");
+        const type = response.headers?.["content-type"] || "";
+        if (response.status !== 200 || !(response.data instanceof ArrayBuffer) || !response.data.byteLength || response.data.byteLength > limit || /json|html|text\//i.test(type)) throw new Error("The server did not return a supported medical volume.");
+        return response.data;
+      } catch (error) {
+        if (exceeded) throw new Error("The download exceeds the browser memory limit. Use authenticated downloads in a desktop imaging application.");
+        if (error.response?.data instanceof ArrayBuffer) {
+          try {
+            const body = JSON.parse(new TextDecoder().decode(error.response.data));
+            if (typeof body.detail === "string") error.message = body.detail;
+          } catch { /* Retain the HTTP error. */ }
+        }
+        throw error;
+      } finally { signal?.removeEventListener("abort", cancel); }
     },
   };
 }

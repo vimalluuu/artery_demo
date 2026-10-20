@@ -49,7 +49,7 @@ The following blueprint capabilities need additional APIs, model/data artifacts,
 
 - Patient editing, demographics/history beyond the current schema, and longitudinal record history.
 - Password reset email/token flow, device-session listing, and individual remote session revocation.
-- Protected pixel/voxel delivery, a true medical viewer, synchronized slices, 3D rendering, and measurement tools.
+- Standalone 2D pixel viewing, oblique/non-mm volume support, surface extraction, and measurement tools. Protected CT delivery, synchronized orthogonal CT/mask slices and binary-mask 3D volume rendering are now implemented on the case Segmentation tab; see [the viewer guide](frontend-segmentation-viewer.md).
 - Volumetric preprocessing jobs and a persistent background processing queue.
 - Centerlines, vessel geometry, stenosis localization/severity, calibrated uncertainty, explainability, annotation review, and analysis-version comparison. The experimental CT segmentation baseline is connected on the case Segmentation tab.
 - Versioned dataset/annotation registries, immutable split manifests, training jobs, checkpoints, model registry/deployment/rollback, and reproducible evaluation runs.

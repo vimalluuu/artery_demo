@@ -74,6 +74,14 @@ Experimental 3D CT segmentation is documented in
 existing case/volume APIs and an optional PyTorch dependency, with a new additive
 `0005_segmentation_results` migration. It does not provide clinical findings.
 
+The viewer also uses authenticated
+`GET /api/v1/cases/{case_id}/segmentations/{result_id}/source`. It streams the
+original `.nii`/`.nii.gz` only for a matching, current result after case-reader
+authorization, storage containment and cached source-checksum checks. Response
+filenames are generic and use `Cache-Control: no-store`; no study directory is
+publicly mounted. No additional migration, model runtime or configuration is
+needed for this read endpoint. See [the viewer guide](../docs/frontend-segmentation-viewer.md).
+
 ```powershell
 .\.venv\Scripts\python -m pytest -q --cov=app --cov-report=term-missing
 .\.venv\Scripts\python scripts/test_postgres.py --bin "C:\Program Files\PostgreSQL\18\bin"

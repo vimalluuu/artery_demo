@@ -3,10 +3,14 @@ from pathlib import Path
 from threading import BoundedSemaphore
 from typing import Literal
 from uuid import UUID, uuid4
+import hashlib
 import logging
+import os
+import stat
+import tempfile
 
 from fastapi import APIRouter, HTTPException
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, StreamingResponse
 from sqlalchemy import select
 
 from app.core.config import settings
@@ -159,15 +163,104 @@ def list_segmentations(case_id: int, current_user: AuthenticatedCaseReader, db: 
     return responses
 
 
-@router.get("/{case_id}/segmentations/{result_id}/{artifact}")
-def download_segmentation(case_id: int, result_id: str, artifact: Literal["mask", "probabilities"],
-                          current_user: AuthenticatedCaseReader, db: DatabaseSession):
+def current_result(db, case_id, result_id):
     case = get_case(db, case_id)
     result = db.get(SegmentationResult, result_id)
     if result is None or result.case_id != case_id:
         raise HTTPException(404, "Segmentation result not found")
     if is_stale(result, case, current_source_sha256(case)):
         raise HTTPException(409, "Segmentation input changed, is missing, or cannot be verified; run inference again.")
+    return case, result
+
+
+class SourceSnapshotResponse(StreamingResponse):
+    """Serve only the verified snapshot handle; close it even on disconnect."""
+
+    def __init__(self, snapshot, compressed):
+        self.snapshot = snapshot
+        filename = "source_ct.nii.gz" if compressed else "source_ct.nii"
+        super().__init__(iter(lambda: snapshot.read(64 * 1024), b""),
+                         media_type="application/gzip" if compressed else "application/octet-stream",
+                         headers={"Cache-Control": "no-store", "X-Content-Type-Options": "nosniff",
+                                  "Content-Disposition": f'attachment; filename="{filename}"',
+                                  "Content-Length": str(os.fstat(snapshot.fileno()).st_size)})
+
+    async def __call__(self, scope, receive, send):
+        try:
+            await super().__call__(scope, receive, send)
+        finally:
+            self.snapshot.close()
+
+
+def snapshot_source(source, expected_checksum, compressed):
+    """Hash the bytes actually copied, then serve that private copy without reopening.
+
+    A pinned source descriptor alone would still permit concurrent in-place writes.
+    TemporaryFile works on Windows too and is never mounted or returned by path.
+    """
+    snapshot = tempfile.TemporaryFile(mode="w+b")
+    limit = (settings.MAX_VOLUME_COMPRESSED_MB if compressed else settings.MAX_VOLUME_UNCOMPRESSED_FILE_MB) * 1024 * 1024
+    try:
+        digest = hashlib.sha256()
+        size = 0
+        with source.open("rb") as stream:
+            info = os.fstat(stream.fileno())
+            if not stat.S_ISREG(info.st_mode) or source.resolve() != source:
+                raise HTTPException(409, "Segmentation source is unavailable or cannot be verified.")
+            if info.st_size > limit:
+                raise HTTPException(409, "Segmentation source exceeds the configured storage limit.")
+            for block in iter(lambda: stream.read(1024 * 1024), b""):
+                size += len(block)
+                if size > limit:
+                    raise HTTPException(409, "Segmentation source exceeds the configured storage limit.")
+                snapshot.write(block)
+                digest.update(block)
+        if digest.hexdigest() != expected_checksum or source.resolve() != source:
+            raise HTTPException(409, "Segmentation input changed; run inference again.")
+        snapshot.seek(0)
+        return snapshot
+    except BaseException:
+        snapshot.close()
+        raise
+
+
+# Register before the artifact route so "source" is not parsed as an artifact.
+@router.get("/{case_id}/segmentations/{result_id}/source", response_class=StreamingResponse,
+            responses={200: {"description": "Original CT bytes for a current segmentation result",
+                             "content": {mime: {"schema": {"type": "string", "format": "binary"}}
+                                         for mime in ("application/gzip", "application/octet-stream")}},
+                       404: {"description": "Case or matching result not found"},
+                       409: {"description": "Source stale, missing, or unverifiable"}})
+def download_source(case_id: int, result_id: str,
+                    current_user: AuthenticatedCaseReader, db: DatabaseSession):
+    case, result = current_result(db, case_id, result_id)
+    source_relative = case.volume_path
+    try:
+        source = (UPLOAD_DIR / source_relative).resolve()
+        if source.parent != VOLUME_DIR or not source.is_file():
+            raise HTTPException(409, "Segmentation source is unavailable or cannot be verified.")
+        compressed = source.name.lower().endswith(".nii.gz")
+        if not compressed and not source.name.lower().endswith(".nii"):
+            raise HTTPException(409, "Segmentation source format cannot be verified.")
+        snapshot = snapshot_source(source, result.metadata_json["source_sha256"], compressed)
+    except (OSError, RuntimeError):
+        raise HTTPException(409, "Segmentation source is unavailable or cannot be verified.") from None
+    try:
+        db.refresh(case)
+        if case.volume_path != source_relative:
+            raise HTTPException(409, "Segmentation input changed; run inference again.")
+        record_event(db, "case.segmentation_source_read", current_user.id, case_id)
+        db.commit()
+        return SourceSnapshotResponse(snapshot, compressed)
+    except BaseException:
+        snapshot.close()
+        raise
+
+
+@router.get("/{case_id}/segmentations/{result_id}/{artifact}")
+def download_segmentation(case_id: int, result_id: str, artifact: Literal["mask", "probabilities"],
+                          current_user: AuthenticatedCaseReader, db: DatabaseSession):
+    current_result(db, case_id, result_id)
     filename = "prediction_mask.nii.gz" if artifact == "mask" else "probabilities.nii.gz"
     directory = result_directory(result_id)
     path = (directory / filename).resolve()

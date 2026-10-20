@@ -197,7 +197,7 @@ export default function Landing() {
       </main>
       <footer className="public-footer">
         <span>© 2026 VascuAI · Vascular imaging research</span>
-        <span>Research prototype · Not for autonomous diagnosis</span>
+        <span>Experimental research visualization — not for diagnostic use.</span>
         <Link to="/help">
           Documentation
           <ArrowRight size={12} style={{ display: "inline", marginLeft: 6 }} />

@@ -75,4 +75,32 @@ python deploy/verify_routing.py --nginx /path/to/nginx
 
 This checks the **same `nginx.conf`**, substituting only test addresses, the local document root, and a temporary listening port. It starts a disposable loopback API, validates nginx syntax, and verifies API prefix/query/auth forwarding, multipart POST forwarding, liveness/readiness, SPA refresh, asset caching, and backend 404/503 propagation. It never connects to an application database or uploads a real study.
 
-For this local audit, Compose configuration validation and nginx routing checks passed. The Docker daemon was unavailable, so Linux image builds and the full container stack could not be executed. No remote deployment or existing database migration was performed.
+The earlier local audit validated Compose configuration and nginx routing while
+Docker was unavailable. The **2026-10-19 web sprint** additionally built both core
+Linux images under separate `vascuai-web-sprint-api:20261019` and
+`vascuai-web-sprint-web:20261019` tags. A disposable Docker network/API/nginx test
+verified SPA refresh, compiled asset caching, backend 401/404 propagation,
+health/readiness, bearer forwarding and the source endpoint OpenAPI contract.
+Only the owned test container's temporary SQLite database was migrated; no host
+application database was mounted or modified. Test containers/network were
+removed. This is not a production deployment or a test of the model-enabled
+PyTorch image/full PostgreSQL Compose stack.
+
+## Medical viewer deployment
+
+The viewer uses the existing same-origin `/api/v1` proxy, including protected
+`/cases/{case_id}/segmentations/{result_id}/source`. Do not mount uploads or model
+outputs under nginx's static document root. No new production environment
+variables are required. Viewer JavaScript and its decoding worker are emitted
+as local assets; a custom Content-Security-Policy must permit the app's worker
+and chunks. Use HTTPS for remote hosting: source checksum verification requires
+Web Crypto in a secure context (localhost is allowed for development).
+
+Volumes are downloaded completely and require sufficient client RAM/VRAM.
+Large/unsupported geometry falls back to authenticated NIfTI downloads; ordinary
+gzip byte ranges do not provide streaming slice access. Inference is still
+synchronous and retains the existing proxy timeout: slow runs may outlive a
+request, so refresh saved history before retrying. See
+[the viewer guide](../docs/frontend-segmentation-viewer.md) for geometry and
+resource limits. Configure production HTTPS, reviewed migrations, private
+secrets, backups and model mounts as separate operator deployment steps.

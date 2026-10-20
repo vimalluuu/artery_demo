@@ -20,10 +20,14 @@ The interface uses **#222222** and **#FDFFFC**, Lucide icons, responsive navigat
 
 Authentication, patient registration, case management, image/NIfTI ingestion, metadata, user administration, and audit logs use real backend APIs. Dashboard charts derive from persisted cases. Case summaries can be exported as JSON/CSV or printed to PDF through the browser.
 
-The case Segmentation tab connects to experimental CT inference, server-loaded run history, and protected NIfTI downloads. Dataset, evaluation, experiment and model registry screens still describe readiness. **Stenosis measurements, explainability, 3D viewing, training, and model deployment are not connected.** No illustrative clinical results are presented as real.
+The case Segmentation tab connects to experimental CT inference, server-loaded run history, protected NIfTI downloads, and an on-demand CT/mask viewer with orthogonal slices and actual binary-mask 3D rendering. Dataset, evaluation, experiment and model registry screens still describe readiness. **Stenosis measurements, explainability, training, and model deployment management are not connected.** No illustrative clinical results are presented as real.
 
 See [frontend segmentation integration](docs/frontend-segmentation-ui.md) for the
 workflow, authentication, test results, and synchronous-request limitations.
+
+See [the medical viewer guide](docs/frontend-segmentation-viewer.md) for the
+protected CT endpoint, geometry/memory limits, controls, verification and pinned
+NiiVue dependency. Viewing an experimental prediction does not establish accuracy.
 
 See [model setup and API contract](backend/app/services/segmentation/README.md) and
 [measured integration results](docs/model-integration-verification.md). The
@@ -66,4 +70,4 @@ The original static HTML demonstration is retained at the repository root. The c
 
 ## Intended use
 
-This is a medical imaging research prototype, not an autonomous diagnostic system. Use public or de-identified data. Any future AI findings require qualified review.
+Experimental research visualization — not for diagnostic use. Use public or de-identified data. Any future AI findings require qualified review.

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { Download, Layers, LoaderCircle, Play, RefreshCw } from "lucide-react";
 import AppShell from "../components/AppShell";
@@ -13,6 +13,8 @@ import { segmentationApi } from "../api/segmentation";
 import { parseThreshold } from "../api/segmentation-contract";
 import { saveArtifact, segmentationEligibility, segmentationError } from "../lib/segmentation";
 import { formatDate } from "../lib/format";
+
+const SegmentationViewer = lazy(() => import('../components/SegmentationViewer'));
 
 export default function AnalysisResult() {
   const { id, analysisId } = useParams();
@@ -36,12 +38,16 @@ function SegmentationWorkspace({ item, requestedId, refreshCase }) {
   const [thresholdError, setThresholdError] = useState("");
   const [run, setRun] = useState({ active: false, success: false, error: "" });
   const [download, setDownload] = useState({ key: "", error: "", success: "" });
+  const [selectedRun, setSelectedRun] = useState(null);
+  const viewerOpener = useRef(null);
   const submitting = useRef(false);
   const downloading = useRef(false);
   const mounted = useRef(true);
   useEffect(() => { mounted.current = true; return () => { mounted.current = false; }; }, []);
   const inputReason = volume.loading && item.hasVolume ? "Checking volume dimensions…" : volume.error ? "The input check failed. Retry loading volume metadata before running." : segmentationEligibility(item, volume.data);
   const inaccessible = history.error?.response?.status === 403;
+  const selected = history.data?.find(result => result.id === selectedRun && !result.stale);
+  function closeViewer() { setSelectedRun(null); viewerOpener.current?.focus(); }
 
   async function runSegmentation(event) {
     event.preventDefault();
@@ -111,7 +117,7 @@ function SegmentationWorkspace({ item, requestedId, refreshCase }) {
         </Panel>
         <Panel title="Outputs & limitations">
           <p className="text-sm text-muted">Each saved run provides a binary NIfTI mask and a float32 probability volume in the source study geometry. Downloads require your current signed-in session.</p>
-          <p className="text-sm text-muted">Interactive 3D visualization remains future work. No voxel data is displayed here. Use a suitable medical-volume viewer to inspect the downloaded files.</p>
+          <p className="text-sm text-muted">Open a current run with View CT + Segmentation to inspect the original CT and binary prediction in an interactive, geometry-checked viewer. Unsupported geometry or browser resources require a desktop imaging application.</p>
           <p className="text-sm text-muted">The probability volume is model output, not calibrated clinical confidence. Segmentation alone does not establish a diagnosis.</p>
           <p className="text-sm text-muted">A stale result belongs to a replaced, changed, missing or unverifiable input. Its downloads are blocked; check the current study before running again.</p>
           <button className="btn btn-ghost btn-sm" disabled={run.active} onClick={refreshCase}>Refresh case details</button>
@@ -124,15 +130,16 @@ function SegmentationWorkspace({ item, requestedId, refreshCase }) {
           <EmptyState icon={Layers} title="No segmentation runs recorded" description="This case has no saved segmentation results. Upload a compatible 3D CT volume and have a Clinician or Admin start a run." /> : <>
             {requestedId && !history.data.some((result) => result.id === requestedId) && <p className="notice">The requested run is not in this case’s segmentation history. Available runs are listed below.</p>}
             <div className="stack">
-              {history.data.map((result) => <SegmentationRecord key={result.id} result={result} highlighted={result.id === requestedId} download={download} onDownload={downloadResult} />)}
+              {history.data.map((result) => <SegmentationRecord key={result.id} result={result} highlighted={result.id === requestedId} download={download} onDownload={downloadResult} onView={event => { viewerOpener.current = event.currentTarget; setSelectedRun(result.id); }} />)}
             </div>
           </>}
       </Panel>
+      {selectedRun && !history.loading && (selected ? <Suspense fallback={<Loading label="Loading medical viewer…" />}><SegmentationViewer key={selected.id} caseId={item.id} result={selected} onClose={closeViewer} /></Suspense> : <p className="notice" role="alert">The selected result is stale or unavailable. The viewer is closed. <button className="btn btn-ghost btn-sm" onClick={closeViewer}>Dismiss</button></p>)}
     </div>
   );
 }
 
-function SegmentationRecord({ result, highlighted, download, onDownload }) {
+function SegmentationRecord({ result, highlighted, download, onDownload, onView }) {
   const metadata = result.metadata || {};
   return (
     <article className={`segmentation-record${highlighted ? " segmentation-record-selected" : ""}`} aria-label={`Segmentation ${result.id}`}>
@@ -149,6 +156,7 @@ function SegmentationRecord({ result, highlighted, download, onDownload }) {
       ]} />
       {result.stale && <p className="notice">Downloads unavailable: the source input has changed or cannot be verified. Refresh the case inputs and run a new segmentation when eligible.</p>}
       <div className="segmentation-downloads">
+        <button className="btn btn-primary btn-sm" disabled={result.stale} onClick={onView} aria-label={`View CT + Segmentation for run ${result.id}`}>View CT + Segmentation</button>
         {["mask", "probabilities"].map((artifact) => <button key={artifact} className="btn btn-ghost btn-sm" disabled={result.stale || Boolean(download.key)} onClick={() => onDownload(result, artifact)} aria-label={`Download ${artifact === "mask" ? "mask" : "probabilities"} for run ${result.id}`}>
           {download.key === `${result.id}-${artifact}` ? <LoaderCircle size={14} className="spin" aria-hidden="true" /> : <Download size={14} aria-hidden="true" />}
           {download.key === `${result.id}-${artifact}` ? "Downloading…" : artifact === "mask" ? "Download mask" : "Download probabilities"}

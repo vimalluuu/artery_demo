@@ -13,6 +13,7 @@ const sections = [
   ["research", "Research methodology"],
   ["exports", "Reports & exports"],
   ["access", "Roles & access"],
+  ["first-admin", "First administrator"],
   ["troubleshooting", "Troubleshooting"],
   ["limitations", "Intended use"],
 ];
@@ -38,6 +39,12 @@ export default function Help() {
           ))}
         </nav>
         <div>
+          <section className="help-section" id="first-admin">
+            <h2>First administrator setup</h2>
+            <p>There are no default administrator credentials. Public registration cannot grant Admin access. An operator with trusted server access creates the first administrator using the existing backend environment:</p>
+            <pre><code>python -m app.database.create_admin</code></pre>
+            <p>Run from the backend directory after configuring a private environment and preparing the database using the reviewed backend setup guide. The command prompts for a password without echoing it and refuses to promote an existing account. Existing user access changes require the authenticated Admin user-management screen. Never paste passwords, tokens or environment files into support messages.</p>
+          </section>
           <section className="help-section" id="start">
             <h2>01 / Getting started</h2>
             <p>
@@ -98,7 +105,8 @@ export default function Help() {
               enhancement, and normalization on the server. These
               transformations do not run a segmentation model. NIfTI ingestion
               reads the header without performing volumetric preprocessing or
-              loading voxel data into the interface.
+              changing CT intensities. Viewing a saved segmentation is a separate,
+              explicit action that retrieves protected CT and binary-mask data.
             </p>
             <p>
               Open a case’s Segmentation tab to run the experimental 3D CT model.
@@ -109,9 +117,15 @@ export default function Help() {
               Probabilities are not calibrated clinical confidence.
             </p>
             <p>
-              A protected pixel-serving API and a medical viewer are required
-              for axial, coronal, sagittal, and 3D viewing. This deployment
-              provides metadata inspection rather than simulated scan images.
+              Choose View CT + Segmentation on a current run. The viewer provides
+              axial, coronal and sagittal slices, CT window/level, overlay opacity
+              and binary-mask 3D rendering. It requires WebGL2, enough browser
+              memory, and matching three-dimensional CT/mask geometry with coded,
+              axis-aligned transforms and explicit millimetre units. Unknown
+              units, oblique/sheared transforms and mismatches are refused. Use
+              the protected downloads in a desktop imaging application when
+              these conditions are not met. Closing the viewer cancels downloads
+              and releases its resources; it does not cancel backend inference.
             </p>
           </section>
           <section className="help-section" id="research">

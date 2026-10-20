@@ -520,15 +520,16 @@ export function Imaging() {
               <div className="viewer-canvas">
                 <ScanLine size={38} strokeWidth={1} />
                 <strong style={{ fontSize: 14, fontWeight: 400 }}>
-                  Pixel and volume viewing is not connected
+                  Source metadata and visualization
                 </strong>
                 <p>
-                  {item.hasVolume || item.hasImage
-                    ? "Your file is stored. This deployment exposes metadata, but does not serve protected image pixels or volume slices to a viewer."
+                  {item.hasVolume
+                    ? "Your volume is stored. Open the Segmentation workspace to view the original CT with a current saved prediction. Unsupported geometry remains available through protected downloads."
+                    : item.hasImage ? "Your 2D image is stored. Inspect its metadata here; standalone 2D pixel viewing is not connected."
                     : "Upload a study from the case overview to inspect its metadata."}
                 </p>
-                <Link className="btn btn-light" to={`/cases/${id}`}>
-                  Open study intake
+                <Link className="btn btn-light" to={`/cases/${id}${item.hasVolume ? '/analysis' : ''}`}>
+                  {item.hasVolume ? 'Open segmentation workspace' : 'Open study intake'}
                   <ArrowUpRight size={14} />
                 </Link>
               </div>
@@ -578,7 +579,7 @@ export function Imaging() {
             </Panel>
             <Panel title="Result layers">
               <div className="text-xs text-muted" style={{ lineHeight: 2 }}>
-                Segmentation mask — not available
+                <Link to={`/cases/${id}/analysis`}>Check Segmentation for saved masks and viewing</Link>
                 <br />
                 Centerline — not available
                 <br />
