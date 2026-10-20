@@ -1,5 +1,12 @@
 # Model integration verification — 2026-10-16
 
+> **2026-10-19 update:** This report retains the historical model-integration
+> measurements and branch state. The later web sprint preserves that checkpoint,
+> architecture, preprocessing and threshold. It adds an authenticated original-CT
+> endpoint and browser visualization; it does not demonstrate improved accuracy.
+> See [the viewer guide](frontend-segmentation-viewer.md) for current web-side
+> verification and restrictions. No existing application database was migrated.
+
 Work is uncommitted on `model-integration`, starting from
 `e7621fa9d37ec64e1df6e8f6e749692636882628` (UI PR #6 merge). No commit, push,
 merge, PR creation, staging, existing application DB migration, or deployment

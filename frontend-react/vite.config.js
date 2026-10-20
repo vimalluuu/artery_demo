@@ -4,6 +4,8 @@ import { defineConfig } from "vite";
 
 export default defineConfig({
   plugins: [tailwindcss(), react()],
+  // Avoid a first-use dependency optimization reload when opening the lazy viewer.
+  optimizeDeps: { include: ['@niivue/niivue', 'nifti-reader-js', 'fflate'] },
   server: {
     port: 5173,
     proxy: {

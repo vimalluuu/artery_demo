@@ -67,7 +67,7 @@ export default function AppShell({ children, breadcrumbs }) {
         </main>
         <footer className="workspace-footer">
           <span>VascuAI / Research workspace</span>
-          <span>AI-assisted research · Qualified review required</span>
+          <span>Experimental research visualization — not for diagnostic use.</span>
         </footer>
       </div>
     </div>

@@ -14,6 +14,22 @@ The original weights must remain unchanged. The loader uses `weights_only=True`,
 CPU mapping, finite-weight checks, and `load_state_dict(..., strict=True)`; there
 is no unrestricted pickle fallback.
 
+### Viewer integration — 2026-10-19
+
+The case Segmentation workspace now displays the original CT with the persisted
+binary prediction and can volume-render that same mask in 3D. It does not change
+model input, weights, thresholds or segmentation quality. The additive protected
+`GET /api/v1/cases/{case_id}/segmentations/{result_id}/source` route uses the same
+reader authorization and cached stale check as artifact downloads. It returns
+original bytes with a generic filename and no-store caching. Existing response
+fields and mask/probability routes remain unchanged; no new migration is needed.
+
+The browser independently verifies the source SHA-256, checks CT/mask geometry
+against run provenance, and refuses unknown/non-mm units, uncoded, oblique or
+sheared transforms in this first viewer version. These are viewer restrictions,
+not changes to ingestion or inference. Original downloads remain available.
+See [the viewer guide](../../../../docs/frontend-segmentation-viewer.md).
+
 ## Setup and artifacts
 
 Use the existing backend environment and install its normal dependencies first:
@@ -199,6 +215,37 @@ reads are serialized, and changes during hashing or inference are rejected.
 Touching a file without changing its bytes rechecks the hash but keeps results
 current. No additional schema migration or checksum backfill is necessary because
 the strong source hash already lives in result metadata.
+
+The protected `GET /cases/{case_id}/segmentations/{result_id}/source` download
+additionally makes a private `TemporaryFile` snapshot before sending any response
+bytes. It copies in 1 MiB chunks from an open regular-file handle, enforces the
+configured compressed or raw upload-byte limit, and checks the copied bytes'
+SHA-256 against inference metadata. The existing freshness, role and containment
+checks remain; the resolved path is checked again while snapshotting and the case
+path is refreshed afterwards. The response reads only that same snapshot handle
+in 64 KiB chunks and closes it on completion, disconnect/cancellation, or failure.
+No source pathname is reopened by the response. Replacing the source or writing it
+in place after snapshot validation cannot change the response bytes. A changed
+copy fails closed with 409; no successful-read audit event is committed for it.
+
+This source-only protection deliberately adds a full copy/hash and download-start
+latency on every request, even with a warm fingerprint cache. RAM usage stays
+bounded, but each concurrent download needs temporary disk space up to the
+configured upload limit. The host must protect its temporary directory and have
+sufficient disk capacity; temporary files can contain sensitive scan bytes and
+are deleted on close. Python's temporary-file and open-handle APIs support Windows
+without requiring POSIX `openat`, advisory locks or unlink-open-file semantics.
+The source response retains the binary media type, safe attachment filename,
+Content-Length, no-store/nosniff and audit logging. It serves full 200 responses;
+FileResponse's automatic range/resume, ETag and Last-Modified behavior is no longer
+advertised for this endpoint. Segmentation artifact downloads are unchanged.
+
+This binds served bytes to the recorded checksum, not to an atomic database/filesystem
+transaction: a new upload immediately after the final case refresh may still
+overlap an already-authorized download of the verified original snapshot. Storage
+must remain application-owned; this is not isolation from a privileged process
+that can alter the private snapshot or database. It also does not claim to harden
+the separate mask/probability FileResponse endpoints against pathname races.
 
 The cache relies on observable filesystem changes and application-owned immutable
 UUID uploads. It is not a defense against an actor rewriting bytes while forging

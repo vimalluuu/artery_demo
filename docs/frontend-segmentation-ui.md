@@ -1,5 +1,13 @@
 # Frontend segmentation integration — 2026-10-17
 
+> **2026-10-19 update:** The historical implementation/results below describe
+> the earlier UI merge. The subsequent autonomous sprint adds a protected
+> original-CT endpoint and an on-demand slice/3D binary-mask viewer. Its current
+> contract, geometry restrictions and measured verification are documented in
+> [the viewer guide](frontend-segmentation-viewer.md). The earlier statement that
+> no viewer exists is superseded; model limitations and synchronous-run caveats
+> still apply. Historical branch/uncommitted statements are not current Git state.
+
 Implemented on `frontend-segmentation-ui`, starting from the verified clean
 `main` merge commit `6ba5ad5` (model integration PR #7). Changes remain unstaged,
 uncommitted and unpushed. No branch switching, PR creation or merge was performed.
