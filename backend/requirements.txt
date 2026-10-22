@@ -27,6 +27,8 @@ PyJWT==2.15.1
 python-dotenv==1.2.4
 python-multipart==0.0.32
 PyYAML==6.0.3
+scikit-image==0.26.0
+scipy==1.17.0
 SQLAlchemy==2.1.4
 starlette==1.8.0
 tifffile==2026.9.20
