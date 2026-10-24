@@ -233,10 +233,14 @@ export function ReportPreview() {
           />
           <h3>03 / Analysis & review</h3>
           <div className="notice">
-            No analysis run, model version, segmentation result, calibrated
-            measurement, stenosis classification, or clinical review is
-            available. Case status is a workflow value and does not certify an
-            AI result.
+            <span>
+              This summary includes case metadata only. Use the case segmentation
+              workspace to review segmentation history and any available outputs.
+              Case status is a workflow value and does not certify an AI result.{" "}
+              <Link to={`/cases/${item.id}/analysis`}>
+                Open case segmentation workspace
+              </Link>
+            </span>
           </div>
           <h3>04 / Study notes</h3>
           <p

@@ -4,6 +4,8 @@ export function releaseViewer(viewer) {
   if (!viewer || released.has(viewer)) return;
   released.add(viewer);
   viewer.onLocationChange = () => {};
+  viewer.onAzimuthElevationChange = () => {};
+  viewer.onZoom3DChange = () => {};
   try { viewer.cleanup(); } // Library event controllers and resize/mutation observers.
   catch { /* Continue releasing buffers and GPU resources if library cleanup fails. */ }
   viewer.volumes = [];

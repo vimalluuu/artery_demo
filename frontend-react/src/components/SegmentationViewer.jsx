@@ -23,7 +23,7 @@ function ViewerSession({ caseId, result, onClose, onRetry }) {
   const [opacity, setOpacity] = useState(.55);
   const [visible, setVisible] = useState(true);
   const [view, setView] = useState('slices');
-  const [azimuth, setAzimuth] = useState(110);
+  const [camera, setCamera] = useState({ azimuth: 110, elevation: 10, zoom: 1 });
 
   useEffect(() => {
     heading.current?.focus({ preventScroll: true });
@@ -67,6 +67,16 @@ function ViewerSession({ caseId, result, onClose, onRetry }) {
         viewer = await createVolumeViewer(element, pair, value => { if (alive) setLocation(value); }, controller.signal);
         if (!alive || controller.signal.aborted) { releaseViewer(viewer); return; }
         instance.current = viewer;
+        const syncCamera = () => {
+          if (alive && !controller.signal.aborted) setCamera({
+            azimuth: viewer.scene.renderAzimuth,
+            elevation: viewer.scene.renderElevation,
+            zoom: viewer.scene.volScaleMultiplier,
+          });
+        };
+        viewer.onAzimuthElevationChange = syncCamera;
+        viewer.onZoom3DChange = syncCamera;
+        syncCamera();
         setReady(true); setPhase('');
       } catch (failure) {
         if (alive && !controller.signal.aborted) fail(failure.message || 'The medical volumes could not be displayed.');
@@ -127,9 +137,31 @@ function ViewerSession({ caseId, result, onClose, onRetry }) {
     }
   }
   function rotate(amount) {
-    const next = azimuth + amount;
-    setAzimuth(next);
-    instance.current?.setRenderAzimuthElevation(next, 15);
+    const viewer = instance.current;
+    if (!viewer) return;
+    try { viewer.setRenderAzimuthElevation(viewer.scene.renderAzimuth + amount, viewer.scene.renderElevation); }
+    catch { stopRendering(); }
+  }
+  function tilt(amount) {
+    const viewer = instance.current;
+    if (!viewer) return;
+    try { viewer.setRenderAzimuthElevation(viewer.scene.renderAzimuth, Math.max(-90, Math.min(90, viewer.scene.renderElevation + amount))); }
+    catch { stopRendering(); }
+  }
+  function zoom(direction) {
+    const viewer = instance.current;
+    if (!viewer) return;
+    const current = viewer.scene.volScaleMultiplier;
+    try { viewer.setScale(direction > 0 ? Math.min(2, current * 1.25) : Math.max(.5, current / 1.25)); }
+    catch { stopRendering(); }
+  }
+  function resetCamera() {
+    const viewer = instance.current;
+    if (!viewer) return;
+    try {
+      viewer.setScale(1);
+      viewer.setRenderAzimuthElevation(110, 10);
+    } catch { stopRendering(); }
   }
   function stopRendering() {
     releaseViewer(instance.current); instance.current = null;
@@ -157,7 +189,19 @@ function ViewerSession({ caseId, result, onClose, onRetry }) {
           return <label key={axis}>{name} slice<input type="range" min="0" max={dimensions[axis] - 1} step="1" value={index} disabled={view === 'mask3d'} onChange={e => setSlice(axis, e.target.value)} /><output>{index + 1} / {dimensions[axis]}</output></label>;
         })}
       </fieldset>
-      {ready && view === 'mask3d' && <div className="segmentation-downloads"><button className="btn btn-ghost btn-sm" onClick={() => rotate(-30)}>Rotate 3D left</button><button className="btn btn-ghost btn-sm" onClick={() => rotate(30)}>Rotate 3D right</button><p className="text-xs">3D volume rendering of the saved binary prediction only. No surface smoothing, invented vessels, or clinical findings.</p></div>}
+      {ready && view === 'mask3d' && <>
+        <div className="segmentation-downloads" role="group" aria-label="3D view controls">
+          <button className="btn btn-ghost btn-sm" onClick={() => rotate(-30)}>Rotate 3D left</button>
+          <button className="btn btn-ghost btn-sm" onClick={() => rotate(30)}>Rotate 3D right</button>
+          <button className="btn btn-ghost btn-sm" disabled={camera.elevation >= 90} onClick={() => tilt(15)}>Tilt 3D up</button>
+          <button className="btn btn-ghost btn-sm" disabled={camera.elevation <= -90} onClick={() => tilt(-15)}>Tilt 3D down</button>
+          <button className="btn btn-ghost btn-sm" disabled={camera.zoom >= 2} onClick={() => zoom(1)}>Zoom 3D in</button>
+          <button className="btn btn-ghost btn-sm" disabled={camera.zoom <= .5} onClick={() => zoom(-1)}>Zoom 3D out</button>
+          <button className="btn btn-ghost btn-sm" onClick={resetCamera}>Reset 3D view</button>
+        </div>
+        <p className="text-xs"><output aria-label="3D camera" aria-live="polite">Azimuth {camera.azimuth.toFixed(0)}°, elevation {camera.elevation.toFixed(0)}°, zoom {Math.round(camera.zoom * 100)}%</output></p>
+        <p className="text-xs">3D volume rendering of the saved binary prediction only. Camera controls change presentation only; voxel boundaries and disconnected regions are preserved. No surface smoothing, invented vessels, or clinical findings.</p>
+      </>}
       <p className="text-xs text-muted">Original dimensions: {shape.join(' × ')}. Neurological convention: L/R, A/P, S/I labels follow world geometry. Slice controls use anatomical RAS axes, not original array ordering.</p>
       {location && <p className="text-xs text-muted">Crosshair RAS: {location.world.map(n => n.toFixed(2)).join(', ')} mm. CT window/level uses source intensity units.</p>}
       {ready && location && <p className="text-xs text-muted">Voxel spacing (original axes): {location.spacing.map(n => n.toFixed(4)).join(' × ')} mm.</p>}
