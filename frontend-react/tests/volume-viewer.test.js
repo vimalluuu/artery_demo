@@ -72,6 +72,8 @@ for (const throws of [false, true]) test(`viewer release is idempotent when libr
   const viewer = {
     volumes: [{}], back: {}, overlays: [{}],
     onLocationChange: () => { throw new Error('Released callback should be detached.'); },
+    onAzimuthElevationChange: () => { throw new Error('Released camera callback should be detached.'); },
+    onZoom3DChange: () => { throw new Error('Released zoom callback should be detached.'); },
     cleanup: () => { calls.push('cleanup'); if (throws) throw new Error('Library cleanup failed.'); },
     gl: { getExtension: name => {
       assert.equal(name, 'WEBGL_lose_context');
@@ -84,6 +86,8 @@ for (const throws of [false, true]) test(`viewer release is idempotent when libr
   assert.equal(viewer.back, null);
   assert.deepEqual(viewer.overlays, []);
   assert.doesNotThrow(() => viewer.onLocationChange());
+  assert.doesNotThrow(() => viewer.onAzimuthElevationChange());
+  assert.doesNotThrow(() => viewer.onZoom3DChange());
   assert.doesNotThrow(() => releaseViewer(viewer));
   assert.deepEqual(calls, ['cleanup', 'extension', 'release']);
 });
