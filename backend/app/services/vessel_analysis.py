@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import TypedDict
+from typing import TypedDict, Any
 
 import numpy as np
 from scipy.ndimage import distance_transform_edt
@@ -50,15 +50,50 @@ def _validate_voxel_spacing(
     return tuple(float(value) for value in spacing)
 
 
-def extract_centerline(mask: np.ndarray) -> np.ndarray:
+def extract_centerline(mask: np.ndarray, return_diagnostics: bool = False) -> np.ndarray | tuple[np.ndarray, dict[str, Any]]:
     """Extract a topology-preserving 3D skeleton from a binary vessel mask.
 
     The returned boolean array has the same shape as ``mask``. In 3D,
     scikit-image's Lee thinning algorithm preserves connectivity while
     reducing the foreground to a one-voxel-wide skeleton.
+    
+    Note: The Lee method can completely lose components that have an even 
+    width (e.g., 2x2, 4x4). This algorithmic limitation is documented.
+    
+    If return_diagnostics is True, returns a tuple of (skeleton, diagnostics_dict) 
+    reporting any input components that completely disappeared or fragmented.
     """
     binary_mask = _validate_binary_volume(mask)
-    return skeletonize(binary_mask, method="lee")
+    skeleton = skeletonize(binary_mask, method="lee")
+    
+    if not return_diagnostics:
+        return skeleton
+        
+    # Run diagnostics to detect lost or fragmented components
+    original_labels, num_original = label(binary_mask, connectivity=3, return_num=True)
+    skeleton_labels, num_skeleton = label(skeleton, connectivity=3, return_num=True)
+    
+    disappeared_components = []
+    fragmented_components = {}
+    
+    for i in range(1, num_original + 1):
+        comp_mask = (original_labels == i)
+        # Find which skeleton labels overlap with this original component
+        skel_overlap = np.unique(skeleton_labels[comp_mask])
+        skel_overlap = skel_overlap[skel_overlap > 0]  # Remove background label (0)
+        
+        if len(skel_overlap) == 0:
+            disappeared_components.append(i)
+        elif len(skel_overlap) > 1:
+            fragmented_components[i] = skel_overlap.tolist()
+            
+    diagnostics = {
+        "disappeared_components": disappeared_components,
+        "fragmented_components": fragmented_components,
+        "warning": "Detecting component loss does not guarantee the skeleton preserves all vessel connectivity."
+    }
+    
+    return skeleton, diagnostics
 
 
 def estimate_diameter(
@@ -102,9 +137,7 @@ def filter_connected_components(
     ``min_component_volume`` and ``voxel_spacing`` use consistent physical
     units (for example, mm³ and mm). Connectivity follows scikit-image's
     convention: 1, 2, or 3 means 6-, 18-, or 26-neighbor connectivity.
-    Components exactly at the threshold are retained. The returned mask is
-    boolean; the report lists each removed component and its voxel/physical
-    volume.
+    Components exactly at the threshold are retained using a strict float tolerance.
     """
     binary_mask = _validate_binary_volume(mask)
     spacing = _validate_voxel_spacing(voxel_spacing)
@@ -118,13 +151,23 @@ def filter_connected_components(
     component_sizes = np.bincount(component_labels.ravel())
     component_sizes[0] = 0
     component_volumes = component_sizes.astype(np.float64) * voxel_volume
-    keep_labels = np.flatnonzero(component_volumes >= min_component_volume)
+    
+    # Strict tolerance for floating point boundary checking (e.g. 0.343 threshold)
+    FLOAT_TOLERANCE = 1e-7
+    
+    keep_labels = np.flatnonzero(
+        (component_volumes > min_component_volume) | 
+        np.isclose(component_volumes, min_component_volume, rtol=0, atol=FLOAT_TOLERANCE)
+    )
     keep_labels = keep_labels[keep_labels != 0]
     kept_mask = np.isin(component_labels, keep_labels)
 
     removed_labels = np.flatnonzero(
-        (component_sizes > 0) & (component_volumes < min_component_volume)
+        (component_sizes > 0) & 
+        (component_volumes < min_component_volume) & 
+        ~np.isclose(component_volumes, min_component_volume, rtol=0, atol=FLOAT_TOLERANCE)
     )
+    
     removed_components: list[RemovedComponent] = [
         {
             "label": int(component_id),
@@ -137,6 +180,7 @@ def filter_connected_components(
     component_count = int(np.count_nonzero(component_sizes))
     kept_voxel_count = int(np.count_nonzero(kept_mask))
     removed_voxel_count = int(binary_mask.sum()) - kept_voxel_count
+    
     report: ComponentFilterReport = {
         "component_count": component_count,
         "kept_component_count": int(keep_labels.size),
