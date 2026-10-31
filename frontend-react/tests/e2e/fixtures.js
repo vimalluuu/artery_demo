@@ -1,5 +1,6 @@
 // Browser-only fixtures. All API requests are intercepted; no local or remote
 // patient records or accounts are created by these tests.
+import {summaryFixture,indexFixture} from '../reporting-fixtures';
 export async function installApi(
   page,
   { role = "Admin", authenticated = true } = {},
@@ -126,6 +127,12 @@ export async function installApi(
           })
         : json({ detail: "No volume" }, 404);
     if (/^\/cases\/\d+\/segmentations$/.test(path) && method === "GET") return json([]);
+    if (path === '/stenosis/analytics/summary' || /^\/cases\/\d+\/stenosis\/analytics$/.test(path)) return json(summaryFixture({patientAllowed:['Admin','Clinician'].includes(role),caseId:path.startsWith('/cases/')?Number(path.split('/')[2]):null}));
+    if (path === '/stenosis/analytics/analyses') return json(indexFixture());
+    if (/^\/cases\/\d+\/stenosis\/analyses$/.test(path) && method === "GET") return json({
+      contract_version: "1.0", case_id: Number(path.split("/")[2]), items: [], total: 0,
+      limit: 20, offset: 0, has_more: false,
+    });
     if (path === "/admin/users") return json([user]);
     if (path === "/admin/audit")
       return json([

@@ -21,6 +21,37 @@ export function prepareVolumes(ct, mask, metadata, { signal, onPhase } = {}) {
   });
 }
 
+export function prepareRegion(region, metadata, artifact_sha256, signal) {
+  if (signal.aborted) return Promise.reject(new DOMException('Viewer closed.', 'AbortError'));
+  return new Promise((resolve, reject) => {
+    const worker = new Worker(new URL('../workers/volume.worker.js', import.meta.url), { type: 'module' });
+    const abort = () => finish(new DOMException('Viewer closed.', 'AbortError'));
+    const finish = (error, data) => {
+      signal.removeEventListener('abort', abort); worker.terminate();
+      if (error) reject(error); else resolve(data);
+    };
+    signal.addEventListener('abort', abort, { once: true });
+    worker.onmessage = ({ data }) => finish(data.error ? new Error(data.error) : null, data);
+    worker.onerror = () => finish(new Error('Candidate-region decoding failed.'));
+    worker.postMessage({ region, metadata, artifact_sha256 }, [region]);
+  });
+}
+
+export function prepareAttribution(attribution, metadata, explanation, signal) {
+  if(!signal) return Promise.reject(new TypeError('Attribution decoding requires an AbortSignal.'));
+  if(signal.aborted) return Promise.reject(new DOMException('Viewer closed.','AbortError'));
+  if(!globalThis.isSecureContext||!globalThis.crypto?.subtle) return Promise.reject(new Error('Attribution verification requires HTTPS or localhost.'));
+  return new Promise((resolve,reject)=>{
+    const worker=new Worker(new URL('../workers/volume.worker.js',import.meta.url),{type:'module'});
+    const abort=()=>finish(new DOMException('Viewer closed.','AbortError'));
+    const finish=(error,data)=>{signal.removeEventListener('abort',abort);worker.terminate();if(error)reject(error);else resolve(data);};
+    signal.addEventListener('abort',abort,{once:true});
+    worker.onmessage=({data})=>finish(data.error?new Error(data.error):null,data);
+    worker.onerror=()=>finish(new Error('Attribution decoding failed.'));
+    worker.postMessage({attribution,metadata,explanation},[attribution]);
+  });
+}
+
 // A caller-owned AbortSignal is required so navigation can cancel all work.
 export async function loadViewerPair(api, caseId, result, { signal, onPhase, onProgress } = {}) {
   if (!signal || typeof signal.addEventListener !== 'function' || typeof signal.removeEventListener !== 'function' || typeof signal.aborted !== 'boolean') throw new TypeError('loadViewerPair requires an AbortSignal.');

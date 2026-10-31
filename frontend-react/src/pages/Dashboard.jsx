@@ -37,6 +37,7 @@ import { formatDate } from "../lib/format";
 import { useRemote } from "../hooks/useRemote";
 import { casesApi } from "../api/cases";
 import { useAuth } from "../context/AuthContext";
+import StenosisAnalytics from "../components/StenosisAnalytics";
 ChartJS.register(CategoryScale, LinearScale, BarElement, Tooltip, Legend);
 
 export default function Dashboard() {
@@ -195,6 +196,7 @@ export default function Dashboard() {
           </Link>
         ))}
       </div>
+      <StenosisAnalytics />
       <div className="overview-main">
         <div className="stack">
           <Panel
