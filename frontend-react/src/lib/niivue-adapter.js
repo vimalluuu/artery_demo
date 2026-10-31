@@ -72,3 +72,37 @@ export async function createVolumeViewer(canvas, pair, onLocation, signal) {
     return viewer;
   } catch (error) { releaseViewer(viewer); throw error; }
 }
+
+export async function addCandidateRegion(viewer, buffer, affine, signal) {
+  const { NVImage } = await import('@niivue/niivue');
+  if (signal.aborted) throw new DOMException('Region cancelled.', 'AbortError');
+  const region = await NVImage.new(buffer, 'candidate_region.nii');
+  if (signal.aborted) throw new DOMException('Region cancelled.', 'AbortError');
+  region.setAffine(affine);
+  region.setColormapLabel({ R: [0, 0], G: [0, 255], B: [0, 128], A: [0, 255], I: [0, 1], labels: ['Background', 'Supplied candidate region'] });
+  region.opacity = .6;
+  try { viewer.addVolume(region); return region; }
+  catch (error) {
+    // Insertion can attach a volume before GPU allocation fails. The hook has
+    // not received ownership yet, so this adapter must remove that partial layer.
+    try { if (viewer.volumes.includes(region)) viewer.removeVolume(region); }
+    catch { /* Preserve the insertion error; CT teardown handles context loss. */ }
+    throw error;
+  }
+}
+
+export async function addAttributionVolume(viewer, buffer, affine, values, signal) {
+  const {NVImage}=await import('@niivue/niivue');
+  if(signal.aborted)throw new DOMException('Attribution cancelled.','AbortError');
+  // Public NiiVue 0.69 APIs/properties, verified in installed source/types.
+  // Zero (or the declared non-negative minimum) is transparent. No data rewrite.
+  viewer.addColormap('vascuai-attribution-positive',{R:[0,100,255],G:[0,35,112],B:[0,0,0],A:[0,255,255],I:[0,1,255]});
+  viewer.addColormap('vascuai-attribution-negative',{R:[0,25,80],G:[0,50,100],B:[0,150,255],A:[0,255,255],I:[0,1,255]});
+  const image=await NVImage.new(buffer,'model_attribution.nii');
+  if(signal.aborted)throw new DOMException('Attribution cancelled.','AbortError');
+  image.setAffine(affine);image.colormap='vascuai-attribution-positive';image.colormapNegative=values.value_type==='signed'?'vascuai-attribution-negative':'';
+  image.cal_min=values.value_type==='signed'?0:values.expected_range[0];image.cal_max=values.expected_range[1];
+  image.cal_minNeg=values.expected_range[0];image.cal_maxNeg=0;image.colormapType=0;image.colorbarVisible=false;image.opacity=0;
+  try{viewer.addVolume(image);return image;}
+  catch(error){try{if(viewer.volumes.includes(image))viewer.removeVolume(image);}catch{/* context may already be lost */}throw error;}
+}

@@ -30,6 +30,14 @@ export function serializeCsv(records) {
     ...records.map((row) => keys.map((key) => csvCell(row[key])).join(",")),
   ].join("\r\n");
 }
+
+// A typed, authorized report snapshot; unlike caseRecord, this contains supplied
+// analysis data. The API validator is the allowlisted contract boundary.
+export function reportJsonBlob(report) {
+  return new Blob([JSON.stringify({schema_version:report.schema_version,document_type:report.document_type,generated_at:report.generated_at,
+    case:report.case,analysis:report.analysis,report_state:report.report_state,unavailable_reason:report.unavailable_reason,
+    result:report.result,explanations:report.explanations,limitations:report.limitations},null,2)],{type:'application/json;charset=utf-8'});
+}
 export function downloadRecords(items, format) {
   const records = items.map(caseRecord);
   const content =

@@ -23,6 +23,8 @@ const CaseHistory = lazy(() =>
   import("./pages/CaseDetail").then((m) => ({ default: m.CaseHistory })),
 );
 const AnalysisResult = lazy(() => import("./pages/AnalysisResult"));
+const StenosisCapabilities = lazy(() => import("./pages/StenosisCapabilities"));
+const StenosisReport = lazy(() => import("./pages/StenosisReport"));
 const Patients = lazy(() => import("./pages/Patients"));
 const NewPatient = lazy(() =>
   import("./pages/Patients").then((m) => ({ default: m.NewPatient })),
@@ -87,6 +89,9 @@ export default function App() {
     ["/cases/:id/imaging", () => <Imaging />],
     ["/cases/:id/analysis", () => <AnalysisResult />],
     ["/cases/:id/analysis/:analysisId", () => <AnalysisResult />],
+    ["/cases/:id/stenosis", () => <StenosisCapabilities />],
+    ["/cases/:id/stenosis/report", () => <StenosisReport />],
+    ["/cases/:id/stenosis/report/:analysisId", () => <StenosisReport />],
     ["/cases/:id/history", () => <CaseHistory />],
     ["/patients", () => <Patients />, writers],
     ["/patients/new", () => <NewPatient />, writers],

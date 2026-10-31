@@ -2,16 +2,21 @@ import { useEffect, useRef, useState } from 'react';
 import { segmentationApi } from '../api/segmentation';
 import { loadViewerPair } from '../lib/volume-loader';
 import { createVolumeViewer, graphicsCapabilities, releaseViewer } from '../lib/niivue-adapter';
+import { useLesionLayer } from '../hooks/useLesionLayer';
+import { useCandidateRegion } from '../hooks/useCandidateRegion';
+import { useExplanationLayer } from '../hooks/useExplanationLayer';
+import { attributionLegend, attributionPresentation, navigateToAttributionSlice } from '../lib/attribution';
 
 export default function SegmentationViewer(props) {
   const [attempt, setAttempt] = useState(0);
   return <ViewerSession key={attempt} {...props} onRetry={() => setAttempt(v => v + 1)} />;
 }
 
-function ViewerSession({ caseId, result, onClose, onRetry }) {
+function ViewerSession({ caseId, result, onClose, onRetry, localization = null, explanation = null, selectedLesionId = null, onLesionSelect }) {
   const canvas = useRef(null);
   const heading = useRef(null);
   const instance = useRef(null);
+  const sourceGeometry = useRef(null);
   const imageUpdate = useRef(null);
   const [phase, setPhase] = useState('Checking browser and source provenance…');
   const [error, setError] = useState('');
@@ -24,6 +29,19 @@ function ViewerSession({ caseId, result, onClose, onRetry }) {
   const [visible, setVisible] = useState(true);
   const [view, setView] = useState('slices');
   const [camera, setCamera] = useState({ azimuth: 110, elevation: 10, zoom: 1 });
+  const [showRegion, setShowRegion] = useState(false);
+  const lesionLayer = useLesionLayer(instance, canvas, sourceGeometry, {
+    ready, view, location, caseId, parentId: result.id, localization, selectedId: selectedLesionId,
+    onSelect: onLesionSelect, onSlices: () => { if (view === 'mask3d') changeView('slices'); },
+  });
+  const lesionLocation = lesionLayer.onLocation;
+  const candidate = useCandidateRegion(instance, sourceGeometry, { ready, view, localization,
+    selectedId: selectedLesionId, caseId, enabled: showRegion && !lesionLayer.error });
+  const hasRegion = Boolean(localization?.result.lesions.find(item => item.lesion_id === selectedLesionId)?.candidate_region);
+  const [explanationSettings,setExplanationSettings]=useState({id:null,requested:false,visible:false,opacity:.35});
+  const settings=explanationSettings.id===explanation?.explanation_id?explanationSettings:{requested:false,visible:false,opacity:.35};
+  const setAttribution=value=>setExplanationSettings(current=>({...(current.id===explanation?.explanation_id?current:{requested:false,visible:false,opacity:.35}),id:explanation?.explanation_id,...value}));
+  const attribution=useExplanationLayer(instance,sourceGeometry,{ready,view,localization,item:explanation,...settings,caseId,parentId:result.id});
 
   useEffect(() => {
     heading.current?.focus({ preventScroll: true });
@@ -64,7 +82,8 @@ function ViewerSession({ caseId, result, onClose, onRetry }) {
         });
         if (!alive || controller.signal.aborted) return;
         setPhase('Preparing GPU textures and rendering slices…');
-        viewer = await createVolumeViewer(element, pair, value => { if (alive) setLocation(value); }, controller.signal);
+        sourceGeometry.current = pair.geometry;
+        viewer = await createVolumeViewer(element, pair, value => { if (alive) { setLocation(value); lesionLocation(value); } }, controller.signal);
         if (!alive || controller.signal.aborted) { releaseViewer(viewer); return; }
         instance.current = viewer;
         const syncCamera = () => {
@@ -96,7 +115,7 @@ function ViewerSession({ caseId, result, onClose, onRetry }) {
       element.removeEventListener('webglcontextlost', contextLost);
       releaseViewer(viewer); instance.current = null;
     };
-  }, [caseId, result]);
+  }, [caseId, result, lesionLocation]);
 
   function setSlice(axis, index) {
     const viewer = instance.current;
@@ -106,6 +125,7 @@ function ViewerSession({ caseId, result, onClose, onRetry }) {
     viewer.scene.crosshairPos = next;
     viewer.drawScene();
     setLocation(current => ({ ...current, fraction: next, world: Array.from(viewer.frac2mm(next)).slice(0, 3) }));
+    lesionLocation({ world: Array.from(viewer.frac2mm(next)).slice(0, 3) });
   }
   function changeWindow(width, center) {
     setWindowWidth(width); setLevel(center);
@@ -176,7 +196,32 @@ function ViewerSession({ caseId, result, onClose, onRetry }) {
       {error && <div className="notice error" role="alert"><p>{error}</p><p>Original authenticated downloads remain available in history.</p><button className="btn btn-ghost btn-sm" onClick={onRetry}>Retry viewer</button></div>}
       <div className={`volume-canvas-container${!ready ? ' volume-canvas-loading' : ''}`}>
         <canvas ref={canvas} aria-label="CT slices with the matching binary segmentation overlay" tabIndex={0} role="img">Use the labelled slice controls to navigate. A WebGL2-capable browser is required.</canvas>
+        {ready && localization && <div className="lesion-marker-layer" aria-label="Validated candidate locations">
+          {lesionLayer.markers.map(marker => <button key={`${marker.id}-${marker.plane}`} className={`lesion-marker${marker.selected ? ' lesion-marker-selected' : ''}`} style={{ left: `${marker.x}%`, top: `${marker.y}%` }} title={`${marker.plane} · Candidate ${marker.id}`} aria-label={`Select ${marker.plane} candidate ${marker.id}`} aria-pressed={marker.selected} onClick={() => onLesionSelect?.(marker.id)} />)}
+        </div>}
       </div>
+      {localization && <>
+        <p className="text-xs">Point legend: cyan circle = supplied candidate; yellow ring = selected candidate. Magenta remains predicted artery, not stenosis. Points are shown only on their current 2D slices.</p>
+        {lesionLayer.error && <p className="notice error" role="alert">{lesionLayer.error} The original CT display is retained.</p>}
+        {lesionLayer.ambiguous && <p className="notice">Multiple candidates share this position. Use the candidate list to choose; no ambiguous reverse selection was made.</p>}
+        {hasRegion ? <label className="volume-checkbox"><input type="checkbox" checked={showRegion} onChange={event => setShowRegion(event.target.checked)} disabled={!ready || Boolean(lesionLayer.error)} />Show supplied candidate region (green, 2D slices only)</label> : <p className="text-xs text-muted">No candidate-region artifact was supplied for this selection.</p>}
+        {candidate.loading && <p role="status">Loading and verifying supplied candidate region…</p>}
+        {candidate.error && <p className="notice error" role="alert">{candidate.error} The CT and artery overlay are retained.</p>}
+      </>}
+      {explanation&&<fieldset className="volume-controls attribution-controls" disabled={!ready}><legend>Model attribution visualization — research use only</legend>
+        <p className="attribution-wide">{explanation.method_name} / {explanation.method_version} · Target {explanation.target.identifier} · {explanation.model_id} / {explanation.model_version} · {explanation.scope}</p>
+        <label className="volume-checkbox"><input type="checkbox" checked={settings.visible} onChange={event=>setAttribution({visible:event.target.checked,requested:true})}/>Show attribution overlay</label>
+        <label>Attribution opacity<input type="range" min="0" max="1" step="0.05" value={settings.opacity} onChange={event=>setAttribution({opacity:Number(event.target.value)})}/><output>{Math.round(settings.opacity*100)}%</output></label>
+        <button className="btn btn-ghost btn-sm" onClick={()=>setAttribution({visible:false,opacity:.35})}>Reset attribution visualization</button>
+        {explanation.scope==='slice'&&<button className="btn btn-ghost btn-sm" onClick={()=>navigateToAttributionSlice(instance.current,explanation,changeView)}>Navigate to explanation slice</button>}
+        <div className="attribution-wide" role="img" aria-label={`${explanation.values.value_type==='signed'?'Signed attribution: blue negative, transparent zero, orange positive':'Non-negative activation: transparent minimum to orange maximum'}; range ${explanation.values.expected_range.join(' to ')}`}>
+          <div className="attribution-scale" style={{background:attributionLegend(explanation.values)}}/>
+          <p className="text-xs">{explanation.values.value_type==='signed'?`${explanation.values.expected_range[0]} negative (blue) · 0 transparent · ${explanation.values.expected_range[1]} positive (orange)`:`${explanation.values.expected_range[0]} minimum (transparent) → ${explanation.values.expected_range[1]} maximum (orange)`}. Fixed declared value scale; no automatic normalization. Values are not probabilities or confidence.</p>
+        </div>
+        {settings.visible&&!attributionPresentation(explanation,view).allowed&&<p className="notice attribution-wide">{attributionPresentation(explanation,view).reason}</p>}
+        {attribution.loading&&<p role="status" className="attribution-wide">Loading and verifying attribution…</p>}
+        {attribution.error&&<p role="alert" className="notice error attribution-wide">{attribution.error} The original CT is retained. Clear and reselect the explanation to retry.</p>}
+      </fieldset>}
       <fieldset disabled={!ready} className="volume-controls"><legend>Image controls</legend>
         <label>View<select aria-label="View" value={view} onChange={e => changeView(e.target.value)}>{[['slices','All three planes'], ['axial','Axial'], ['coronal','Coronal'], ['sagittal','Sagittal'], ['mask3d','3D binary mask']].map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>
         <label>Window width<input type="range" min="1" max="3000" step="1" value={windowWidth} disabled={view === 'mask3d'} onChange={e => changeWindow(Number(e.target.value), level)} /><output>{windowWidth}</output></label>
