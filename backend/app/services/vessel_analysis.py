@@ -88,6 +88,8 @@ def extract_centerline(mask: np.ndarray, return_diagnostics: bool = False) -> np
             fragmented_components[i] = skel_overlap.tolist()
             
     diagnostics = {
+        "input_component_count": int(num_original),
+        "output_skeleton_component_count": int(num_skeleton),
         "disappeared_components": disappeared_components,
         "fragmented_components": fragmented_components,
         "warning": "Detecting component loss does not guarantee the skeleton preserves all vessel connectivity."
@@ -137,7 +139,10 @@ def filter_connected_components(
     ``min_component_volume`` and ``voxel_spacing`` use consistent physical
     units (for example, mm³ and mm). Connectivity follows scikit-image's
     convention: 1, 2, or 3 means 6-, 18-, or 26-neighbor connectivity.
-    Components exactly at the threshold are retained using a strict float tolerance.
+    Components at the threshold, within a relative tolerance of 1e-5, are
+    retained. The absolute tolerance is eight machine epsilons at the
+    threshold scale, so the comparison scales when measurements use different
+    physical units.
     """
     binary_mask = _validate_binary_volume(mask)
     spacing = _validate_voxel_spacing(voxel_spacing)
@@ -152,20 +157,25 @@ def filter_connected_components(
     component_sizes[0] = 0
     component_volumes = component_sizes.astype(np.float64) * voxel_volume
     
-    # Strict tolerance for floating point boundary checking (e.g. 0.343 threshold)
-    FLOAT_TOLERANCE = 1e-7
-    
-    keep_labels = np.flatnonzero(
-        (component_volumes > min_component_volume) | 
-        np.isclose(component_volumes, min_component_volume, rtol=0, atol=FLOAT_TOLERANCE)
+    threshold = float(min_component_volume)
+    relative_tolerance = 1e-5
+    absolute_tolerance = (
+        abs(threshold) * np.finfo(np.float64).eps * 8
     )
+    at_threshold = np.isclose(
+        component_volumes,
+        threshold,
+        rtol=relative_tolerance,
+        atol=absolute_tolerance,
+    )
+
+    keep_labels = np.flatnonzero((component_volumes > threshold) | at_threshold)
     keep_labels = keep_labels[keep_labels != 0]
     kept_mask = np.isin(component_labels, keep_labels)
 
     removed_labels = np.flatnonzero(
         (component_sizes > 0) & 
-        (component_volumes < min_component_volume) & 
-        ~np.isclose(component_volumes, min_component_volume, rtol=0, atol=FLOAT_TOLERANCE)
+        (component_volumes < threshold) & ~at_threshold
     )
     
     removed_components: list[RemovedComponent] = [
@@ -187,7 +197,7 @@ def filter_connected_components(
         "removed_component_count": len(removed_components),
         "kept_voxel_count": kept_voxel_count,
         "removed_voxel_count": removed_voxel_count,
-        "min_component_volume": float(min_component_volume),
+        "min_component_volume": threshold,
         "voxel_volume": voxel_volume,
         "removed_components": removed_components,
     }

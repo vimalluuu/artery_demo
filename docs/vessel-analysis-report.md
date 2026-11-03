@@ -24,6 +24,9 @@ can disappear completely. The optional diagnostics compare connected
 components before and after skeletonization. They report source-component labels
 with no overlapping skeleton voxel in `disappeared_components`, and source
 components overlapping multiple skeleton components in `fragmented_components`.
+Diagnostics also include `input_component_count` and
+`output_skeleton_component_count`. A component label refers to the connected
+component numbering produced by the respective 26-neighbor label operation.
 Diagnostics expose this loss; they do not restore, interpolate, or fabricate
 skeleton data. A nonempty skeleton or an empty diagnostics list is not proof of
 anatomical correctness or complete topology preservation.
@@ -43,8 +46,13 @@ default unit spacing produces voxel-coordinate distances.
 `skimage.measure.label` and the selected 3D connectivity. Each component's
 physical volume is its voxel count multiplied by the product of the three
 spacing values. Components below `min_component_volume` are removed. A
-component equal to the threshold is retained, using an absolute `np.isclose`
-tolerance of `1e-7` with `rtol=0`.
+component equal to the threshold is retained using `np.isclose` with relative
+tolerance `1e-5` and an absolute tolerance of eight
+float64 machine epsilons scaled by the threshold magnitude. This comparison
+scales with the physical unit, so equivalent thresholds in mm³ and m³ have
+equivalent boundary behavior. A component just below the threshold but within
+that relative tolerance is treated as numerically at-threshold; its reported
+physical volume remains its computed volume.
 
 The direct dependencies used by these utilities are **NumPy**, **SciPy**
 (`scipy.ndimage`), and **scikit-image** (`skimage.measure` and
@@ -85,6 +93,8 @@ estimation, returned values use the same physical length unit as the spacing.
     labeling that have no skeleton overlap.
   - `fragmented_components`: original labels associated with multiple
     connected skeleton labels.
+  - `input_component_count` and `output_skeleton_component_count`: the number
+    of 26-neighbor connected components before and after skeletonization.
   - `warning`: a text warning that detecting component loss does not guarantee
     preserved connectivity.
 
@@ -108,8 +118,10 @@ estimation, returned values use the same physical length unit as the spacing.
   removed voxel counts; the threshold and voxel volume; and per-removed-
   component labels, voxel counts, and physical volumes.
 - **Boundary behavior:** Components above or at the threshold are retained.
-  Values within `1e-7` absolute volume difference from the threshold are
-  considered equal; relative tolerance is disabled.
+  Values within a relative tolerance of `1e-5` (plus eight float64 machine
+  epsilons scaled to the threshold) are treated as numerically equal to the
+  threshold. This avoids a fixed absolute tolerance whose effective meaning
+  changes between units.
 
 The utilities reject empty dimensions, non-3D arrays, non-binary data,
 mismatched centerline shapes, centerline voxels outside the mask, and invalid
@@ -130,14 +142,21 @@ external data are required.
   voxel units away, so the reported diameter is eight units. An absolute
   tolerance of `0.01` accommodates floating-point representation while
   remaining far smaller than a one-voxel change.
-- A deliberately asymmetric anisotropic volume checks axis order. Its expected
-  diameter is 11 physical units for spacing `(4.0, 2.0, 0.5)`; reversing the
-  tuple would produce 16 units. The `0.01` absolute tolerance makes an axis
-  order error fail clearly.
+- A deliberately asymmetric anisotropic volume checks axis order. With spacing
+  `(1.0, 2.0, 2.0)`, the expected diameter is 16 physical units; reversing the
+  tuple produces 14 units. The test executes both calculations and checks the
+  reversed result explicitly, with a `0.01` absolute tolerance.
 - The component-threshold test uses a nominal threshold of `0.343` and spacing
   `(0.07, 0.07, 0.07)`. Components of 999, 1000, and 1001 voxels have
-  physical volumes just below, within `1e-7` of, and just above the threshold,
-  respectively. The assertions cover removed, kept, and kept behavior.
+  physical volumes below, at (subject to floating-point rounding), and above
+  the threshold. Additional regressions cover clearly-below, slightly-below,
+  exact, and slightly-above boundaries in equivalent mm³ and m³ scales with
+  anisotropic spacing.
+- T-, Y-, and multi-branch synthetic masks check for centerline voxels in every
+  distal arm and verify those voxels connect to the branch junction. A separate
+  bookkeeping test injects a deliberately fragmented skeleton to test the
+  diagnostics' source-to-skeleton label mapping; it is not evidence that the
+  natural skeletonizer fragments that test shape.
 - Separate disconnected larger components represent legitimate islands, while
   an isolated voxel and a small cluster represent false positives that should
   be removed by the configured threshold.
@@ -147,12 +166,18 @@ external data are required.
 The tolerances are for deterministic numerical comparison of synthetic geometry;
 they are not claims about measurement error on real acquisitions.
 
+## Diameter-estimation limitations
+
+EDT-based diameter estimates can be misleading near endpoints and branch
+junctions. At endpoints or truncated vessel boundaries, the EDT may
+underestimate diameter because the vessel end constrains the distance field.
+At branch junctions, multiple limbs contribute foreground around the branch
+point and can make the estimate larger than a local limb diameter. These
+outputs are algorithmic approximations and do not represent independently
+validated anatomical measurements.
+
 ## Known limitations
 
-- **EDT can overestimate near junctions.** Multiple vessel limbs contribute
-  foreground around a branch point, so the nearest-background distance may be
-  larger than the local branch radius. EDT-based diameter estimates can also
-  be underestimated near endpoints or truncated vessel boundaries.
 - **Lee skeletonization can completely lose even-width vessel components.**
   This behavior is observable for a 4×4 cross-section tube. The code reports
   disappearance when diagnostics are requested; it intentionally does not

@@ -4,6 +4,7 @@ import numpy as np
 import pytest
 from skimage.measure import label
 
+from app.services import vessel_analysis
 from app.services.vessel_analysis import (
     estimate_diameter,
     extract_centerline,
@@ -26,10 +27,65 @@ def _make_y_shaped_mask() -> np.ndarray:
     return mask
 
 
-def test_y_branch_centerline_remains_connected():
-    mask = _make_y_shaped_mask()
+def _make_t_shaped_mask() -> tuple[np.ndarray, list[tuple[slice, slice, slice]]]:
+    mask = np.zeros((35, 35, 35), dtype=bool)
+    mask[4:30, 15:20, 15:20] = True
+    mask[4:9, 5:30, 15:20] = True
+    tips = [
+        (slice(25, 30), slice(15, 20), slice(15, 20)),
+        (slice(4, 9), slice(5, 10), slice(15, 20)),
+        (slice(4, 9), slice(25, 30), slice(15, 20)),
+    ]
+    return mask, tips
 
-    centerline = extract_centerline(mask)
+
+def _make_multibranch_mask() -> tuple[np.ndarray, list[tuple[slice, slice, slice]]]:
+    mask = np.zeros((35, 35, 35), dtype=bool)
+    mask[3:32, 15:20, 15:20] = True
+    mask[14:19, 3:32, 15:20] = True
+    mask[14:19, 15:20, 3:32] = True
+    tips = [
+        (slice(3, 8), slice(15, 20), slice(15, 20)),
+        (slice(27, 32), slice(15, 20), slice(15, 20)),
+        (slice(15, 20), slice(3, 8), slice(15, 20)),
+        (slice(15, 20), slice(27, 32), slice(15, 20)),
+        (slice(15, 20), slice(15, 20), slice(3, 8)),
+        (slice(15, 20), slice(15, 20), slice(27, 32)),
+    ]
+    return mask, tips
+
+
+@pytest.mark.parametrize(
+    "mask_and_tips,center_region",
+    [
+        pytest.param(
+            _make_t_shaped_mask,
+            (slice(13, 22), slice(13, 22), slice(13, 22)),
+            id="T-shaped",
+        ),
+        pytest.param(
+            lambda: (
+                _make_y_shaped_mask(),
+                [
+                    (slice(4, 9), slice(14, 17), slice(6, 9)),
+                    (slice(22, 27), slice(4, 9), slice(6, 9)),
+                    (slice(22, 27), slice(21, 27), slice(6, 9)),
+                ],
+            ),
+            (slice(12, 19), slice(12, 19), slice(6, 9)),
+            id="Y-shaped",
+        ),
+        pytest.param(
+            _make_multibranch_mask,
+            (slice(13, 21), slice(13, 21), slice(13, 21)),
+            id="multi-branch",
+        ),
+    ],
+)
+def test_branch_skeleton_preserves_each_arm_to_the_junction(mask_and_tips, center_region):
+    mask, tip_regions = mask_and_tips()
+
+    centerline, diagnostics = extract_centerline(mask, return_diagnostics=True)
 
     assert centerline.dtype == np.bool_
     assert centerline.shape == mask.shape
@@ -37,19 +93,86 @@ def test_y_branch_centerline_remains_connected():
     assert np.all(~centerline | mask)
     assert label(mask, connectivity=3).max() == 1
     assert label(centerline, connectivity=3).max() == 1
+    center_labels = np.unique(label(centerline, connectivity=3)[center_region])
+    center_labels = center_labels[center_labels > 0]
+    assert center_labels.size == 1
+    skeleton_labels = label(centerline, connectivity=3)
+    for tip_region in tip_regions:
+        tip_labels = np.unique(skeleton_labels[tip_region])
+        tip_labels = tip_labels[tip_labels > 0]
+        assert tip_labels.size == 1
+        assert tip_labels[0] == center_labels[0]
+    assert diagnostics["input_component_count"] == 1
+    assert diagnostics["output_skeleton_component_count"] == 1
 
 
-def test_even_width_tube_disappearance_is_reported_in_diagnostics():
-    mask = np.zeros((24, 20, 20), dtype=bool)
-    mask[3:21, 8:12, 8:12] = True
+@pytest.mark.parametrize("width", [2, 4, 6])
+def test_even_width_components_disappear_and_are_reported(width):
+    mask = np.zeros((40, 32, 32), dtype=bool)
+    mask[5:35, 14 : 14 + width, 14 : 14 + width] = True
 
     centerline, diagnostics = extract_centerline(mask, return_diagnostics=True)
 
     assert centerline.shape == mask.shape
     assert not centerline.any()
+    assert diagnostics["input_component_count"] == 1
+    assert diagnostics["output_skeleton_component_count"] == 0
     assert diagnostics["disappeared_components"] == [1]
     assert diagnostics["fragmented_components"] == {}
     assert diagnostics["warning"]
+
+
+def test_mixed_even_width_loss_and_odd_width_survival_are_reported():
+    mask = np.zeros((36, 52, 52), dtype=bool)
+    placements = [(4, 4, 2), (4, 20, 4), (24, 4, 6), (24, 24, 3)]
+    for y, x, width in placements:
+        mask[4:32, y : y + width, x : x + width] = True
+
+    centerline, diagnostics = extract_centerline(mask, return_diagnostics=True)
+
+    assert centerline.any()
+    assert centerline[4:32, 24:27, 24:27].any()
+    assert not centerline[4:32, 4:6, 4:6].any()
+    assert not centerline[4:32, 4:8, 20:24].any()
+    assert not centerline[4:32, 24:30, 4:10].any()
+    assert diagnostics["input_component_count"] == 4
+    assert diagnostics["output_skeleton_component_count"] == 1
+    assert diagnostics["disappeared_components"] == [1, 2, 3]
+    assert diagnostics["fragmented_components"] == {}
+
+
+def test_fragmentation_diagnostics_map_each_source_component_correctly(monkeypatch):
+    mask = np.zeros((24, 24, 24), dtype=bool)
+    mask[2:8, 2:8, 2:8] = True
+    mask[2:8, 14:20, 2:8] = True
+    mask[14:20, 2:8, 2:8] = True
+    synthetic_skeleton = np.zeros_like(mask)
+    synthetic_skeleton[3, 3, 3] = True
+    synthetic_skeleton[6, 6, 6] = True
+    synthetic_skeleton[3, 15, 3] = True
+    monkeypatch.setattr(
+        vessel_analysis,
+        "skeletonize",
+        lambda _mask, method: synthetic_skeleton,
+    )
+
+    centerline, diagnostics = extract_centerline(mask, return_diagnostics=True)
+
+    assert np.array_equal(centerline, synthetic_skeleton)
+    assert diagnostics["input_component_count"] == 3
+    assert diagnostics["output_skeleton_component_count"] == 3
+    assert diagnostics["disappeared_components"] == [3]
+    assert diagnostics["fragmented_components"] == {1: [1, 3]}
+
+
+def test_centerline_default_return_remains_skeleton_array():
+    mask = np.zeros((9, 9, 9), dtype=bool)
+    mask[2:7, 4:5, 4:5] = True
+
+    result = extract_centerline(mask)
+
+    assert isinstance(result, np.ndarray)
+    assert result.dtype == np.bool_
 
 
 def test_diameter_matches_known_discrete_tube_diameter():
@@ -69,21 +192,22 @@ def test_diameter_matches_known_discrete_tube_diameter():
     assert np.count_nonzero(diameters[~centerline]) == 0
 
 
-def test_anisotropic_spacing_uses_numpy_axis_order_strictly():
+def test_anisotropic_spacing_reversal_returns_fourteen_not_sixteen():
     mask = np.zeros((31, 24, 34), dtype=bool)
-    mask[2:29, 5:12, 5:26] = True
+    mask[2:29, 5:12, 9:22] = True
     centerline = np.zeros_like(mask)
     centerline[15, 8, 15] = True
-    spacing = (4.0, 2.0, 0.5)
+    spacing = (1.0, 2.0, 2.0)
 
     diameter = estimate_diameter(mask, centerline, voxel_spacing=spacing)[15, 8, 15]
+    reversed_diameter = estimate_diameter(
+        mask, centerline, voxel_spacing=spacing[::-1]
+    )[15, 8, 15]
 
-    # Axis 1 reaches background after 4 voxels (physical distance 8);
-    # axis 2 reaches it after 11 voxels (physical distance 5.5). Thus the
-    # nearest background is 5.5 units away and the diameter is 11. Reversing
-    # the spacing tuple would instead make the axis-1 distance 8 and return 16.
-    assert diameter == pytest.approx(11.0, abs=0.01)
-    assert diameter != pytest.approx(16.0, abs=0.01)
+    # Correct order: axis 1 radius is 8; axis 2 radius is 14, giving 16.
+    # Reversed order: the nearest boundary is 7 physical units away, giving 14.
+    assert diameter == pytest.approx(16.0, abs=0.01)
+    assert reversed_diameter == pytest.approx(14.0, abs=0.01)
 
 
 def test_component_threshold_keeps_exact_and_above_removes_below():
@@ -115,6 +239,54 @@ def test_component_threshold_keeps_exact_and_above_removes_below():
     assert report["removed_component_count"] == 1
     assert report["removed_voxel_count"] == 999
     assert report["kept_voxel_count"] == 2001
+
+
+@pytest.mark.parametrize(
+    "unit_scale",
+    [
+        pytest.param(1.0, id="mm3"),
+        pytest.param(1e-9, id="m3"),
+    ],
+)
+@pytest.mark.parametrize(
+    "component_factor,threshold_factor,should_keep",
+    [
+        pytest.param(1.0, 1.1, False, id="clearly-below"),
+        pytest.param(1.0, 1.0 + 5e-6, True, id="slightly-below-within-tolerance"),
+        pytest.param(1.0, 1.0, True, id="exact"),
+        pytest.param(1.0 + 5e-6, 1.0, True, id="slightly-above"),
+    ],
+)
+def test_volume_threshold_comparison_is_scale_aware(
+    unit_scale, component_factor, threshold_factor, should_keep
+):
+    mask = np.zeros((3, 3, 3), dtype=bool)
+    mask[1, 1, 1] = True
+    # The anisotropic voxel product is exactly one mm³ before unit conversion.
+    component_volume = unit_scale * component_factor
+    threshold = threshold_factor * unit_scale
+    spacing = (2.0, 0.5, component_volume)
+
+    filtered, report = filter_connected_components(
+        mask,
+        min_component_volume=threshold,
+        voxel_spacing=spacing,
+        connectivity=1,
+    )
+
+    assert bool(filtered[1, 1, 1]) is should_keep
+    assert report["component_count"] == 1
+    assert report["kept_component_count"] == int(should_keep)
+    assert report["removed_component_count"] == int(not should_keep)
+    assert report["removed_voxel_count"] == int(not should_keep)
+    if should_keep:
+        assert report["removed_components"] == []
+    else:
+        assert report["removed_components"][0]["label"] == 1
+        assert report["removed_components"][0]["voxel_count"] == 1
+        assert report["removed_components"][0]["volume"] == pytest.approx(
+            component_volume
+        )
 
 
 def test_component_filter_keeps_legitimate_islands_and_removes_small_positives():
