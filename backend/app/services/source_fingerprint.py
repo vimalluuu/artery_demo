@@ -5,6 +5,7 @@ only avoids rereading unchanged files; it is rebuilt after restart. Storage must
 remain application-owned: stat metadata is not a tamper-proof integrity signal.
 """
 from functools import lru_cache
+from collections import OrderedDict
 import hashlib
 import os
 from pathlib import Path
@@ -17,6 +18,7 @@ class SourceChangedError(OSError):
 
 
 _cache_lock = RLock()
+_observed = OrderedDict()
 
 
 def file_version(path: Path) -> tuple[int, ...]:
@@ -56,4 +58,25 @@ def source_sha256(path: Path) -> str:
     path = path.resolve()
     # Serialize cold misses so concurrent requests do not duplicate large reads.
     with _cache_lock:
-        return _digest_for_version(str(path), file_version(path))
+        version = file_version(path)
+        digest = _digest_for_version(str(path), version)
+        _observed[str(path)] = (version, digest)
+        _observed.move_to_end(str(path))
+        while len(_observed) > 128:
+            _observed.popitem(last=False)
+        return digest
+
+
+def observed_source_sha256(path: Path) -> str | None:
+    """Stat-only dashboard check: never populate a cold checksum by reading CT.
+
+    None means unverified, not current. Normal explicit source/result retrieval
+    can verify and warm this bounded process-local cache after a restart.
+    """
+    path = path.resolve()
+    version = file_version(path)
+    with _cache_lock:
+        observed = _observed.get(str(path))
+        if observed is not None and observed[0] != version:
+            raise SourceChangedError("Source version requires renewed verification")
+        return observed[1] if observed is not None else None

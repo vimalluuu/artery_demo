@@ -44,9 +44,9 @@ export default function Reports() {
       <div className="notice">
         <Info size={16} />
         <span>
-          These exports contain persisted case metadata. AI findings, clinical
-          reports, and analysis measurements are not available in this
-          deployment.
+          These exports contain persisted case metadata. Open a case's stenosis
+          history for separately authorized structured analysis reports. Genuine
+          analysis generation remains unavailable with the current provider.
         </span>
       </div>
       <div className="filters-bar">
@@ -233,10 +233,15 @@ export function ReportPreview() {
           />
           <h3>03 / Analysis & review</h3>
           <div className="notice">
-            No analysis run, model version, segmentation result, calibrated
-            measurement, stenosis classification, or clinical review is
-            available. Case status is a workflow value and does not certify an
-            AI result.
+            <span>
+              This summary includes case metadata only. Use the case segmentation
+              workspace to review segmentation history and any available outputs.
+              Case status is a workflow value and does not certify an AI result.{" "}
+              <Link to={`/cases/${item.id}/analysis`}>
+                Open case segmentation workspace
+              </Link>
+              {" "}<Link to={`/cases/${item.id}/stenosis/report`}>Open stenosis analytics and reports</Link>
+            </span>
           </div>
           <h3>04 / Study notes</h3>
           <p

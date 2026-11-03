@@ -83,6 +83,60 @@ test('authenticated orthogonal viewer renders real synthetic data and keyboard c
   expect(errors).toEqual([]);
 });
 
+test('3D camera controls are keyboard accessible and reset presentation only', async ({page}) => {
+  await setup(page); await open(page); await ready(page);
+  await page.getByRole('slider',{name:/Window width/}).fill('800');
+  await page.getByRole('slider',{name:/Window level/}).fill('200');
+  await page.getByRole('slider',{name:/Overlay opacity/}).fill('0.8');
+  await expect(page.getByRole('slider',{name:/Window width/})).toHaveValue('800');
+  // Let the existing debounced window update finish before fixed-view comparisons.
+  await page.waitForTimeout(200);
+  await page.getByLabel('View',{exact:true}).selectOption('mask3d');
+  const feedback = page.getByLabel('3D camera',{exact:true});
+  await expect(feedback).toHaveText('Azimuth 110°, elevation 10°, zoom 100%');
+  const canvas = page.getByRole('img',{name:/CT slices/});
+  const baseline = await canvas.screenshot({path:test.info().outputPath('3d-default.png')});
+  await page.getByRole('button',{name:'Rotate 3D right',exact:true}).focus();
+  await page.keyboard.press('Enter');
+  await page.getByRole('button',{name:'Tilt 3D up',exact:true}).click();
+  await page.getByRole('button',{name:'Zoom 3D in',exact:true}).click();
+  await expect(feedback).toHaveText('Azimuth 140°, elevation 25°, zoom 125%');
+  const changed = await canvas.screenshot({path:test.info().outputPath('3d-camera-adjusted.png')});
+  expect(changed.equals(baseline)).toBe(false);
+  await canvas.hover();
+  await page.mouse.wheel(0, -100);
+  await expect(feedback).not.toContainText('zoom 125%');
+  const beforeDrag = await feedback.textContent();
+  const box = await canvas.boundingBox();
+  await page.mouse.move(box.x+box.width*.5,box.y+box.height*.5);
+  await page.mouse.down();
+  await page.mouse.move(box.x+box.width*.65,box.y+box.height*.55,{steps:5});
+  await page.mouse.up();
+  await expect(feedback).not.toHaveText(beforeDrag);
+  const [azimuth,elevation] = (await feedback.textContent()).match(/-?\d+/g).map(Number);
+  await page.getByRole('button',{name:'Rotate 3D right',exact:true}).click();
+  await expect(feedback).toContainText(`Azimuth ${azimuth+30}°, elevation ${elevation}°`);
+  await page.getByRole('button',{name:'Reset 3D view',exact:true}).click();
+  await expect(feedback).toHaveText('Azimuth 110°, elevation 10°, zoom 100%');
+  const reset = await canvas.screenshot({path:test.info().outputPath('3d-reset.png')});
+  expect(reset.equals(baseline)).toBe(true);
+  for (let i=0; i<4; i++) await page.getByRole('button',{name:'Zoom 3D in',exact:true}).click();
+  await expect(page.getByRole('button',{name:'Zoom 3D in',exact:true})).toBeDisabled();
+  await expect(feedback).toContainText('zoom 200%');
+  await page.getByRole('button',{name:'Reset 3D view',exact:true}).click();
+  await page.setViewportSize({width:390,height:844});
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  const violations = await new AxeBuilder({page}).include('.volume-viewer').withTags(['wcag2a','wcag2aa']).analyze();
+  expect(violations.violations).toEqual([]);
+  await page.screenshot({path:test.info().outputPath('3d-controls-mobile.png'),fullPage:true});
+  await page.getByLabel('View',{exact:true}).selectOption('axial');
+  await expect(page.getByRole('slider',{name:/Window width/})).toHaveValue('800');
+  await expect(page.getByRole('slider',{name:/Window level/})).toHaveValue('200');
+  await expect(page.getByRole('slider',{name:/Overlay opacity/})).toHaveValue('0.8');
+  await expect(page.getByLabel('Show segmentation')).toBeChecked();
+  await expect(page.getByRole('group',{name:'3D view controls',exact:true})).toHaveCount(0);
+});
+
 test('permuted anatomical axes keep sliders and world positions aligned', async ({page}) => {
   await setup(page,{permuted:true}); await open(page); await ready(page);
   await expect(page.getByRole('slider',{name:/Sagittal slice/})).toHaveAttribute('max','9');

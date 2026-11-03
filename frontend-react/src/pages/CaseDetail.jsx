@@ -37,6 +37,7 @@ export function CaseTabs({ id }) {
         ["", "Overview"],
         ["/imaging", "Imaging & metadata"],
         ["/analysis", "Segmentation"],
+        ["/stenosis", "Stenosis"],
         ["/history", "Study history"],
       ].map(([path, label]) => (
         <NavLink

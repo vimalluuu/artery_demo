@@ -118,6 +118,34 @@ test("history refresh renders stale status and disables both downloads", async (
   await expect(page.getByRole("button", { name: `Download probabilities for run ${id}` })).toBeDisabled();
 });
 
+for (const hasSavedResult of [false, true]) {
+  test(`report preview describes metadata-only scope with ${hasSavedResult ? "saved" : "no"} segmentation history`, async ({ page }) => {
+    await installApi(page);
+    const fixture = await segmentationRoutes(page, { results: hasSavedResult ? [result()] : [] });
+    await page.goto("/reports/1");
+    const summary = page.locator(".report-sheet");
+    await expect(summary).toContainText("This summary includes case metadata only.");
+    await expect(summary).toContainText("Case status is a workflow value and does not certify an AI result.");
+    await expect(summary).not.toContainText(/No analysis run|segmentation results? (?:is|are) (?:unavailable|not available)/i);
+    await expect(summary).toContainText("not a diagnostic report");
+    for (const name of ["JSON", "CSV", "Print / save PDF"]) {
+      await expect(page.getByRole("button", { name, exact: true })).toBeEnabled();
+    }
+    expect(fixture.counts()).toEqual({ getCount: 0, postCount: 0 });
+    const workspace = summary.getByRole("link", { name: "Open case segmentation workspace", exact: true });
+    await expect(workspace).toHaveAttribute("href", "/cases/1/analysis");
+    await workspace.click();
+    await expect(page).toHaveURL(/\/cases\/1\/analysis$/);
+    if (hasSavedResult) {
+      await expect(page.getByRole("article", { name: `Segmentation ${id}` })).toBeVisible();
+    } else {
+      await expect(page.getByRole("heading", { name: "No segmentation runs recorded" })).toBeVisible();
+    }
+    expect(fixture.counts().getCount).toBeGreaterThanOrEqual(1);
+    expect(fixture.counts().postCount).toBe(0);
+  });
+}
+
 test("both downloads carry bearer authentication and save sensible filenames", async ({ page }) => {
   await installApi(page, { role: "Researcher" });
   const fixture = await segmentationRoutes(page, { results: [result()] });
@@ -129,7 +157,18 @@ test("both downloads carry bearer authentication and save sensible filenames", a
     expect(downloaded.suggestedFilename()).toBe(`case-1-segmentation-${id}-${artifact}.nii.gz`);
     expect(fixture.calls.find((call) => call.url.endsWith(`/${artifact}`)).auth).toBe("Bearer browser-test-token");
   }
-  expect(fixture.calls.every((call) => call.url.startsWith("http://127.0.0.1:5173/api/v1/"))).toBe(true);
+  const expectedOrigin = new URL(page.url()).origin;
+  const protectedPaths = [
+    "/api/v1/cases/1/segmentations",
+    `/api/v1/cases/1/segmentations/${id}/mask`,
+    `/api/v1/cases/1/segmentations/${id}/probabilities`,
+  ];
+  for (const call of fixture.calls) {
+    const url = new URL(call.url);
+    expect(url.origin).toBe(expectedOrigin);
+    expect(protectedPaths).toContain(url.pathname);
+    expect(call.auth).toBe("Bearer browser-test-token");
+  }
 });
 
 for (const status of [403, 409, 503]) {

@@ -192,7 +192,7 @@ class SourceSnapshotResponse(StreamingResponse):
             self.snapshot.close()
 
 
-def snapshot_source(source, expected_checksum, compressed):
+def snapshot_source(source, expected_checksum, compressed, *, max_bytes=None):
     """Hash the bytes actually copied, then serve that private copy without reopening.
 
     A pinned source descriptor alone would still permit concurrent in-place writes.
@@ -200,6 +200,9 @@ def snapshot_source(source, expected_checksum, compressed):
     """
     snapshot = tempfile.TemporaryFile(mode="w+b")
     limit = (settings.MAX_VOLUME_COMPRESSED_MB if compressed else settings.MAX_VOLUME_UNCOMPRESSED_FILE_MB) * 1024 * 1024
+    # Attribution callers impose a tighter bound without altering CT/region defaults.
+    if max_bytes is not None:
+        limit = min(limit, max_bytes)
     try:
         digest = hashlib.sha256()
         size = 0
