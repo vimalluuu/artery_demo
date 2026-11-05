@@ -1,6 +1,10 @@
 
 import "./SegmentationEvaluationDashboard.css";
-
+import OverallPerformance from "./OverallPerformance.jsx";
+import CaseEvaluationTable from "./CaseEvaluationTable.jsx";
+import ModelComparison from "./ModelComparison.jsx";
+import TrainingRunHistory from "./TrainingRunHistory.jsx";
+import EvaluationHistory from "./EvaluationHistory.jsx";
 const METRICS = [
   { key: "dice", label: "Dice coefficient", percentage: true },
   { key: "iou", label: "Intersection over Union (IoU)", percentage: true },
@@ -52,6 +56,11 @@ export default function SegmentationEvaluationDashboard({
   status = "success",
   evaluations = [],
   errorMessage,
+  summary = null,
+  caseEvaluations = [],
+  modelComparisons = [],
+  trainingRuns = [],
+  evaluationHistory = [],
 }) {
   const validStatuses = ["loading", "error", "unavailable", "success"];
   const currentStatus = validStatuses.includes(status)
@@ -67,7 +76,7 @@ export default function SegmentationEvaluationDashboard({
     >
       <header className="evaluation-header">
         <div>
-          <p className="evaluation-eyebrow">VascuAI · Milestone 2</p>
+          <p className="evaluation-eyebrow">VascuAI </p>
           <h1 id="evaluation-title">Segmentation Evaluation</h1>
           <p className="evaluation-subtitle">
             Review model performance using available validation metrics.
@@ -87,7 +96,11 @@ export default function SegmentationEvaluationDashboard({
           decisions.
         </p>
       </aside>
-
+      <OverallPerformance summary={summary} />
+      <CaseEvaluationTable cases={caseEvaluations} />
+      <ModelComparison results={modelComparisons} />
+      <TrainingRunHistory runs={trainingRuns} />
+      <EvaluationHistory history={evaluationHistory} />
       <section
         className="evaluation-section"
         aria-labelledby="results-title"
