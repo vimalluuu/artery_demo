@@ -43,8 +43,15 @@ def execute_inference(source: Path, destination: Path, threshold: float):
         raise HTTPException(exc.status_code, str(exc)) from exc
 
 
+def readable_cases():
+    # AuthenticatedCaseReader enforces roles. The existing case policy grants
+    # those readers access to every existing case; share this SQL scope with
+    # history so eligibility is applied before pagination, not after it.
+    return select(Case)
+
+
 def get_case(db, case_id):
-    case = db.get(Case, case_id)
+    case = db.scalar(readable_cases().where(Case.id == case_id))
     if case is None:
         raise HTTPException(404, "Case not found")
     return case
