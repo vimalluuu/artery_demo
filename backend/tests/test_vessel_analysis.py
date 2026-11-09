@@ -410,3 +410,104 @@ def test_invalid_spacing_is_rejected(spacing):
 
     with pytest.raises(ValueError, match="voxel_spacing"):
         estimate_diameter(mask, centerline, voxel_spacing=spacing)
+
+
+def test_unit_conversion_mm_to_meters_yields_equivalent_filtering():
+    mask = np.zeros((10, 10, 10), dtype=bool)
+    mask[2:4, 2:4, 2:4] = True  # 2x2x2 = 8 voxels
+
+    filtered_mm, report_mm = filter_connected_components(
+        mask,
+        voxel_spacing=(1.0, 1.0, 1.0),
+        min_component_volume=5.0,
+    )
+    filtered_m, report_m = filter_connected_components(
+        mask,
+        voxel_spacing=(1e-3, 1e-3, 1e-3),
+        min_component_volume=5.0 * 1e-9,
+    )
+
+    assert np.array_equal(filtered_mm, filtered_m)
+    assert report_mm["kept_voxel_count"] == report_m["kept_voxel_count"] == 8
+    assert report_mm["kept_component_count"] == report_m["kept_component_count"] == 1
+
+
+@pytest.mark.parametrize(
+    "invalid_spacing",
+    [
+        (0.0, 1.0, 1.0),
+        (-1.0, 1.0, 1.0),
+        (np.nan, 1.0, 1.0),
+        (np.inf, 1.0, 1.0),
+        (1.0, 1.0),
+    ],
+)
+def test_invalid_spacing_is_rejected_in_filtering(invalid_spacing):
+    mask = np.ones((3, 3, 3), dtype=bool)
+
+    with pytest.raises(ValueError):
+        filter_connected_components(
+            mask,
+            voxel_spacing=invalid_spacing,
+            min_component_volume=1.0,
+        )
+
+
+@pytest.mark.parametrize(
+    "invalid_threshold",
+    [-1.0, np.nan, np.inf, -np.inf],
+)
+def test_invalid_threshold_is_rejected(invalid_threshold):
+    mask = np.ones((3, 3, 3), dtype=bool)
+
+    with pytest.raises(ValueError):
+        filter_connected_components(
+            mask,
+            voxel_spacing=(1.0, 1.0, 1.0),
+            min_component_volume=invalid_threshold,
+        )
+
+
+@pytest.mark.parametrize(
+    "invalid_connectivity",
+    [0, 4, -1, None, 1.5],
+)
+def test_invalid_connectivity_is_rejected(invalid_connectivity):
+    mask = np.ones((3, 3, 3), dtype=bool)
+
+    with pytest.raises(ValueError):
+        filter_connected_components(
+            mask,
+            voxel_spacing=(1.0, 1.0, 1.0),
+            min_component_volume=1.0,
+            connectivity=invalid_connectivity,
+        )
+
+
+@pytest.mark.parametrize(
+    "connectivity,expected_count,expected_kept_voxels",
+    [
+        pytest.param(1, 2, 0, id="6-connectivity"),
+        pytest.param(2, 2, 0, id="18-connectivity"),
+        pytest.param(3, 1, 2, id="26-connectivity"),
+    ],
+)
+def test_connectivity_coverage_6_18_26(
+    connectivity,
+    expected_count,
+    expected_kept_voxels,
+):
+    mask = np.zeros((3, 3, 3), dtype=bool)
+    mask[0, 0, 0] = True
+    mask[1, 1, 1] = True
+
+    filtered, report = filter_connected_components(
+        mask,
+        voxel_spacing=(1.0, 1.0, 1.0),
+        min_component_volume=1.5,
+        connectivity=connectivity,
+    )
+
+    assert report["component_count"] == expected_count
+    assert report["kept_voxel_count"] == expected_kept_voxels
+    assert int(filtered.sum()) == expected_kept_voxels

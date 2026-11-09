@@ -144,12 +144,12 @@ def filter_connected_components(
     threshold scale, so the comparison scales when measurements use different
     physical units.
     """
-    binary_mask = _validate_binary_volume(mask)
-    spacing = _validate_voxel_spacing(voxel_spacing)
     if not np.isfinite(min_component_volume) or min_component_volume < 0:
         raise ValueError("min_component_volume must be finite and non-negative")
+    spacing = _validate_voxel_spacing(voxel_spacing)
     if not isinstance(connectivity, (int, np.integer)) or connectivity not in (1, 2, 3):
         raise ValueError("connectivity must be 1, 2, or 3")
+    binary_mask = _validate_binary_volume(mask)
 
     voxel_volume = float(np.prod(spacing))
     component_labels = label(binary_mask, connectivity=int(connectivity))
