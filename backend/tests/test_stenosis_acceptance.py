@@ -159,7 +159,7 @@ def test_populated_migration_chain_and_rollback_preservation(db, volume, runtime
     config = Config("alembic.ini")
     chain = [r.revision for r in reversed(list(ScriptDirectory.from_config(config).walk_revisions()))]
     assert chain == ["0001_main","0002_auth","0003_case_meta","0004_volume_ingestion","0005_segmentation_results",
-                     "0006_stenosis_jobs","0007_stenosis_results","0008_stenosis_explanations"]
+                     "0006_stenosis_jobs","0007_stenosis_results","0008_stenosis_explanations","0009_evaluations"]
     item = completed_fixture(db,volume,runtime,tmp_path,artifacts=True)
     # Snapshot all pre-stenosis domain rows; compare exact values after rollback.
     protected = [User.__table__,Patient.__table__,Case.__table__,SegmentationResult.__table__]

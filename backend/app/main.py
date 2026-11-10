@@ -6,6 +6,7 @@ from fastapi.responses import JSONResponse
 from sqlalchemy.exc import SQLAlchemyError
 
 from app.core.config import settings
+from app.core.evaluation_upload import EvaluationUploadBodyLimit
 from app.routers.auth import router as auth_router
 from app.routers.patients import router as patients_router
 from app.routers.cases import router as cases_router
@@ -16,6 +17,7 @@ from app.routers.stenosis_jobs import router as stenosis_jobs_router
 from app.routers.stenosis_results import router as stenosis_results_router
 from app.routers.stenosis_explanations import router as stenosis_explanations_router
 from app.routers.stenosis_reporting import router as stenosis_reporting_router
+from app.routers.evaluations import router as evaluations_router
 from app.database.session import check_database_connection
 
 
@@ -27,6 +29,7 @@ app = FastAPI(
     version="0.1.0",
 )
 
+app.add_middleware(EvaluationUploadBodyLimit, path=f"{settings.API_V1_STR}/evaluations/artifacts")
 app.add_middleware(CORSMiddleware, allow_origins=settings.CORS_ORIGINS,
                    allow_credentials=False, allow_methods=["GET", "POST", "PATCH"],
                    allow_headers=["Authorization", "Content-Type", "Idempotency-Key"])
@@ -58,6 +61,7 @@ app.include_router(stenosis_jobs_router, prefix=settings.API_V1_STR)
 app.include_router(stenosis_results_router, prefix=settings.API_V1_STR)
 app.include_router(stenosis_explanations_router, prefix=settings.API_V1_STR)
 app.include_router(stenosis_reporting_router, prefix=settings.API_V1_STR)
+app.include_router(evaluations_router, prefix=settings.API_V1_STR)
 
 app.include_router(
     patients_router,
