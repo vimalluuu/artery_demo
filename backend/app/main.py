@@ -1,4 +1,7 @@
 
+import logging
+import sqlite3
+
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
@@ -19,6 +22,9 @@ from app.routers.stenosis_explanations import router as stenosis_explanations_ro
 from app.routers.stenosis_reporting import router as stenosis_reporting_router
 from app.routers.evaluations import router as evaluations_router
 from app.database.session import check_database_connection
+
+
+logger = logging.getLogger(__name__)
 
 
 app = FastAPI(
@@ -46,7 +52,25 @@ async def validation_error(request: Request, exc: RequestValidationError):
 
 @app.exception_handler(SQLAlchemyError)
 async def database_error(request: Request, exc: SQLAlchemyError):
-    return JSONResponse(status_code=503, content={"detail": "Database temporarily unavailable"})
+    original = getattr(exc, "orig", None)
+    sqlstate = getattr(original, "sqlstate", None)
+    schema_error = sqlstate in {"42P01", "42703"} or (
+        isinstance(original, sqlite3.OperationalError)
+        and str(original).startswith(("no such table:", "no such column:"))
+    )
+    # SQLAlchemy exception strings/tracebacks can contain SQL parameters and
+    # credentials. Log diagnostic categories and the route template only.
+    route = getattr(request.scope.get("route"), "path", "unmatched")
+    logger.error(
+        "Database request failed: route=%s error_type=%s sqlstate=%s schema_error=%s",
+        route, type(exc).__name__, sqlstate, schema_error,
+    )
+    detail = (
+        "Database schema is out of date or incomplete. Review and apply the "
+        "documented Alembic migrations before retrying."
+        if schema_error else "Database temporarily unavailable"
+    )
+    return JSONResponse(status_code=503, content={"detail": detail})
 
 
 @app.exception_handler(Exception)
